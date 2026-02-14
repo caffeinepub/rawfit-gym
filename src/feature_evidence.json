@@ -1,0 +1,51 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-an-admin-notification-section-that-surfaces-pause-requests-awaiting-action-approval-rejection-in-the-admin-experience-the-notification-section-must-be-accessible-from-the-existing-admin-dashboard-ui-and-must-show-at-minimum-the-pending-request-list-items-with-member-id-member-name-if-available-request-timestamp-and-quick-action-buttons-to-approve-or-deny-for-pending-only",
+      "featureTitle": "Add an admin notification section that surfaces pause requests awaiting action (approval/rejection) in the admin experience. The notification section must be accessible from the existing admin dashboard UI and must show at minimum the pending request list items with member ID, member name (if available), request timestamp, and quick action buttons to Approve or Deny (for pending only).",
+      "files": [
+        "frontend/src/components/admin/DashboardTab.tsx",
+        "frontend/src/components/admin/PauseRequestNotifications.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-13"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-clear-member-facing-status-indicator-showing-the-member-s-membership-status-and-pause-request-status-on-the-member-dashboard-the-indicator-must-distinguish-at-least-1-active-no-pending-request-2-pause-request-pending-approval-and-3-paused-approved-if-a-request-was-denied-including-auto-rejected-the-ui-must-show-that-it-was-denied-and-display-the-admin-message-when-present",
+      "featureTitle": "Add a clear member-facing status indicator showing the member’s membership status and pause-request status on the member dashboard. The indicator must distinguish at least: (1) Active (no pending request), (2) \"Pause request pending approval\", and (3) Paused (approved). If a request was denied (including auto-rejected), the UI must show that it was denied and display the admin message when present.",
+      "files": [
+        "frontend/src/components/member/MemberDashboardTab.tsx",
+        "frontend/src/components/member/MemberMembershipStatusCard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-14"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

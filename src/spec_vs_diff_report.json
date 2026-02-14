@@ -1,0 +1,46 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-14T01:12:51.464Z",
+  "summary": "Frontend additions implement an admin Dashboard notifications section for pending pause requests and a member-facing membership/pause-request status card. Backend changes introduce a new pause request status variant (#expired) and add a migration module, but the diff does not clearly show the required 3-day auto-rejection being persisted as status=denied with processedAt and the specified adminMessage across all read paths.",
+  "missing_requirements": [
+    {
+      "id": "REQ-12",
+      "requirement": "Auto-reject pending pause requests older than 3 days by persisting status=denied, setting processedAt, and setting adminMessage to \"Auto-rejected due to no admin action within 3 days\" (unless adminMessage already exists), and apply this consistently anywhere pause requests are read.",
+      "reason": "The backend diff introduces a new PauseRequestStatus variant (#expired) and migration types to include #expired, which conflicts with the requirement to persist auto-rejections as status=denied. The provided truncated backend/main.mo snippet does not show logic that (a) detects >3 days on read, (b) persists the change, (c) sets processedAt, and (d) sets the required adminMessage across all pause-request read endpoints.",
+      "evidence": [
+        "backend/main.mo (PauseRequestStatus includes #expired; only shows pauseRequestExpiryPeriod constant, not the required persistence logic)",
+        "backend/migration.mo (introduces NewPauseRequestStatus with #expired and migrates pauseRequests)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Introduced a new pause request status variant \"expired\" (#expired) and related migration, rather than representing auto-rejection as status=denied as specified.",
+      "reason": "BuildRequest/REQ-12 requires expired pending requests to be updated to status=denied (with processedAt and adminMessage). The diff adds #expired to PauseRequestStatus and migrates data to include it, which is not requested and may contradict the required behavior.",
+      "evidence": [
+        "backend/main.mo (PauseRequestStatus = #pending/#approved/#denied/#expired)",
+        "backend/migration.mo (NewPauseRequestStatus includes #expired)"
+      ]
+    },
+    {
+      "description": "Added a separate backend migration module file (backend/migration.mo), moving logic out of backend/main.mo.",
+      "reason": "Constraints state: \"Backend must remain a single Motoko actor with all logic in backend/main.mo\". Adding backend/migration.mo introduces additional backend logic outside main.mo, and it is not requested by the BuildRequest.",
+      "evidence": [
+        "backend/migration.mo (new file)",
+        "backend/main.mo (imports Migration \"migration\" and uses (with migration = Migration.run))"
+      ]
+    }
+  ],
+  "confidence": 0.66,
+  "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/components/admin/DashboardTab.tsx",
+    "frontend/src/components/admin/PauseRequestNotifications.tsx",
+    "frontend/src/components/member/MemberDashboardTab.tsx",
+    "frontend/src/components/member/MemberMembershipStatusCard.tsx",
+    "project_state.json"
+  ]
+}

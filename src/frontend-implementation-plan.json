@@ -1,0 +1,51 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Member status indicator and admin pause-request notifications (frontend-only)",
+  "requirements": [
+    {
+      "id": "REQ-13",
+      "summary": "Add an admin-dashboard Notifications section listing pending pause requests with approve/deny quick actions.",
+      "acceptanceCriteria": [
+        "Admin Dashboard includes a visible \"Notifications\" (or equivalent) section showing pending pause requests without requiring navigation to the separate Pause Requests tab.",
+        "Each pending notification item shows: Member ID, Member Name (if available), Requested At timestamp, and Approve/Deny actions.",
+        "Approving/denying from the notification section updates the backend and removes/updates the item from the pending list after React Query refresh.",
+        "If there are no pending pause requests, the notification section shows an explicit empty state message in English (e.g., \"No pending pause requests\")."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/PauseRequestNotifications.tsx",
+          "operation": "create",
+          "description": "Create a Dashboard Notifications widget that uses existing React Query hooks (useGetAllPauseRequests, useGetAllMembers, useApprovePauseRequest, useDenyPauseRequest) to render pending pause requests with member ID, member name (if available), requested timestamp, and Approve/Deny actions. Ensure actions are only shown for pending items and include an explicit English empty state when none are pending. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/DashboardTab.tsx",
+          "operation": "modify",
+          "description": "Wire the new Notifications widget into the existing Admin Dashboard tab UI so it is visible on the dashboard without navigating to the Pause Requests tab. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "summary": "Add a clear member-facing status indicator on the member dashboard for membership and pause-request states (active, pending, paused/approved, denied with message).",
+      "acceptanceCriteria": [
+        "Member dashboard displays a clearly labeled status area that includes the current membership status (Active/Paused/Inactive as applicable) and the pause request status when one exists.",
+        "When pause request status is pending, the UI shows the text \"Pause request pending approval\" and disables re-requesting pause.",
+        "When a pause request is denied (including auto-rejected), the UI shows a denied state and displays the admin message if provided by the backend.",
+        "When a pause request is approved and the membership is paused, the UI shows a paused state and the existing resume behavior remains available."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/member/MemberMembershipStatusCard.tsx",
+          "operation": "create",
+          "description": "Create a member dashboard status/indicator card that consumes existing data (MemberProfile + getPauseRequestStatus result) and renders distinct, clearly labeled states: Active (no pending), \"Pause request pending approval\", Paused (approved), and Denied (show admin message when present). This component should be presentation-focused and rely on the parent for data fetching. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/member/MemberDashboardTab.tsx",
+          "operation": "modify",
+          "description": "Integrate the new status indicator into the member dashboard (near the top and/or within Membership Information) and update existing copy to exactly show \"Pause request pending approval\" when pending. Ensure denied state is shown even if adminMessage is absent (message displayed only when present) and keep the existing behavior that disables re-requesting pause while pending and allows resume when paused. Verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}
