@@ -3,7 +3,7 @@
   "frontend/index.html": "HTML entry point with updated page title to \"RawFit Gym - Think Fit, Be Fit\"",
   "frontend/src/components/Header.tsx": "Header component displaying RawFit Gym logo, name, and tagline with user profile dropdown menu",
   "frontend/src/pages/LoginPage.tsx": "Login page featuring RawFit Gym branding with logo, name, tagline \"Think Fit, Be Fit\", and Internet Identity authentication",
-  "frontend/src/App.tsx": "Main app component with authentication routing that supports both admin (Internet Identity) and member (membership-ID-only) sessions, bypassing admin profile/role checks for member-only authentication to prevent guest-role access denial.",
+  "frontend/src/App.tsx": "Main app component with authentication routing, health check monitoring, production version verification notice, and URL-parameter-controlled smoke-test overlay for post-deployment validation.",
   "frontend/src/pages/LoginSelectionPage.tsx": "Landing page with error boundary that presents users with a choice between member login and admin login, featuring loading states during page transitions and comprehensive error handling with fallback UI.",
   "frontend/src/pages/AdminLoginPage.tsx": "Admin login page with Internet Identity authentication, comprehensive error handling including initialization state checks, retry functionality with loading indicators, and clear error messages for connection failures.",
   "frontend/src/pages/MemberLoginPage.tsx": "Member login page with membership ID input and validation, enhanced error handling that tracks failure count and triggers backend health check after 2+ failures, differentiating between server connectivity issues and validation errors with appropriate UI messaging and Reload action.",
@@ -30,5 +30,9 @@
   "frontend/src/components/admin/PauseRequestsTab.tsx": "Admin interface for reviewing and managing member pause requests with separate sections for pending and processed requests, approve/deny actions with optional admin messages, and real-time list updates.",
   "frontend/src/pages/AdminDashboard.tsx": "Main admin dashboard with tabs including the new Pause Requests tab for managing member pause approval workflow, with dynamic footer attribution.",
   "frontend/src/components/admin/PauseRequestNotifications.tsx": "Admin dashboard notification widget displaying pending pause requests with member details, timestamps, and quick approve/deny actions with optional admin messages.",
-  "frontend/src/components/member/MemberMembershipStatusCard.tsx": "Member-facing status card component showing current membership status (Active/Paused/Expired) and pause request states (pending approval, denied with admin message, or paused) with appropriate visual indicators."
+  "frontend/src/components/member/MemberMembershipStatusCard.tsx": "Member-facing status card component showing current membership status (Active/Paused/Expired) and pause request states (pending approval, denied with admin message, or paused) with appropriate visual indicators.",
+  "frontend/src/release/expectedProductionVersion.ts": "Defines expected production version (v1.2.1) with utilities for version comparison and status reporting to verify backend version matches the deployed frontend.",
+  "frontend/src/components/ProductionVersionNotice.tsx": "Non-blocking alert component that displays only when backend version mismatches expected production version, helping validate successful deployment.",
+  "frontend/src/release/smokeTestChecklist.ts": "Comprehensive production smoke-test checklist covering health checks, admin flows (login, dashboard, pause request management), and member flows (login, status display, pause/resume functionality).",
+  "frontend/src/release/SmokeTestOverlay.tsx": "Interactive overlay component displaying categorized smoke-test checklist with progress tracking, backend health status, and version verification for post-deployment validation."
 }

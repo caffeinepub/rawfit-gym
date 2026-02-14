@@ -14,6 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ProductionVersionNotice } from './components/ProductionVersionNotice';
+import { SmokeTestOverlay } from './release/SmokeTestOverlay';
 
 function AppContent() {
   const { identity, isInitializing, loginError } = useInternetIdentity();
@@ -34,6 +36,18 @@ function AppContent() {
   // Health check state for prolonged loading detection
   const [showHealthCheck, setShowHealthCheck] = useState(false);
   const { data: healthData, refetch: refetchHealth } = useBackendHealthCheck();
+
+  // Smoke test overlay state (controlled by URL parameter)
+  const [showSmokeTest, setShowSmokeTest] = useState(false);
+
+  // Check URL for smoke test parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const smokeTestParam = params.get('smoketest');
+    if (smokeTestParam === '1' || smokeTestParam === 'true') {
+      setShowSmokeTest(true);
+    }
+  }, []);
 
   // Log authentication state for debugging
   useEffect(() => {
@@ -138,13 +152,45 @@ function AppContent() {
 
   // Show login selection page if not authenticated
   if (!isAuthenticated) {
-    return <LoginSelectionPage />;
+    return (
+      <>
+        <LoginSelectionPage />
+        {/* Production version notice (only shows on mismatch) */}
+        {healthData && (
+          <div className="fixed bottom-4 right-4 max-w-md z-50">
+            <ProductionVersionNotice reportedVersion={healthData.version} />
+          </div>
+        )}
+        {/* Smoke test overlay */}
+        <SmokeTestOverlay
+          open={showSmokeTest}
+          onClose={() => setShowSmokeTest(false)}
+          healthData={healthData}
+        />
+      </>
+    );
   }
 
   // Member-only authentication: bypass admin profile/role checks
   if (isMemberAuthenticated && !isAdminAuthenticated) {
     console.log('App - Member-only session detected, rendering MemberDashboard');
-    return <MemberDashboard />;
+    return (
+      <>
+        <MemberDashboard />
+        {/* Production version notice (only shows on mismatch) */}
+        {healthData && (
+          <div className="fixed bottom-4 right-4 max-w-md z-50">
+            <ProductionVersionNotice reportedVersion={healthData.version} />
+          </div>
+        )}
+        {/* Smoke test overlay */}
+        <SmokeTestOverlay
+          open={showSmokeTest}
+          onClose={() => setShowSmokeTest(false)}
+          healthData={healthData}
+        />
+      </>
+    );
   }
 
   // Admin authentication flow: check profile setup and role
@@ -166,7 +212,23 @@ function AppContent() {
     }
 
     // Render admin dashboard
-    return <AdminDashboard />;
+    return (
+      <>
+        <AdminDashboard />
+        {/* Production version notice (only shows on mismatch) */}
+        {healthData && (
+          <div className="fixed bottom-4 right-4 max-w-md z-50">
+            <ProductionVersionNotice reportedVersion={healthData.version} />
+          </div>
+        )}
+        {/* Smoke test overlay */}
+        <SmokeTestOverlay
+          open={showSmokeTest}
+          onClose={() => setShowSmokeTest(false)}
+          healthData={healthData}
+        />
+      </>
+    );
   }
 
   // Fallback (should not reach here)

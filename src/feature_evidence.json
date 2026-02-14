@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-an-admin-notification-section-that-surfaces-pause-requests-awaiting-action-approval-rejection-in-the-admin-experience-the-notification-section-must-be-accessible-from-the-existing-admin-dashboard-ui-and-must-show-at-minimum-the-pending-request-list-items-with-member-id-member-name-if-available-request-timestamp-and-quick-action-buttons-to-approve-or-deny-for-pending-only",
-      "featureTitle": "Add an admin notification section that surfaces pause requests awaiting action (approval/rejection) in the admin experience. The notification section must be accessible from the existing admin dashboard UI and must show at minimum the pending request list items with member ID, member name (if available), request timestamp, and quick action buttons to Approve or Deny (for pending only).",
+      "featureId": "feature-promote-the-currently-deployed-preview-build-version-36-to-the-live-production-deployment-so-end-users-see-all-implemented-changes-member-pause-request-status-indicator-admin-notifications-pause-request-approvals-denials-and-auto-expiry-behavior",
+      "featureTitle": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
       "files": [
-        "frontend/src/components/admin/DashboardTab.tsx",
-        "frontend/src/components/admin/PauseRequestNotifications.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/ProductionVersionNotice.tsx",
+        "frontend/src/release/expectedProductionVersion.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -20,16 +21,17 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-13"
+        "REQ-15"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-clear-member-facing-status-indicator-showing-the-member-s-membership-status-and-pause-request-status-on-the-member-dashboard-the-indicator-must-distinguish-at-least-1-active-no-pending-request-2-pause-request-pending-approval-and-3-paused-approved-if-a-request-was-denied-including-auto-rejected-the-ui-must-show-that-it-was-denied-and-display-the-admin-message-when-present",
-      "featureTitle": "Add a clear member-facing status indicator showing the member’s membership status and pause-request status on the member dashboard. The indicator must distinguish at least: (1) Active (no pending request), (2) \"Pause request pending approval\", and (3) Paused (approved). If a request was denied (including auto-rejected), the UI must show that it was denied and display the admin message when present.",
+      "featureId": "feature-perform-a-production-smoke-test-pass-immediately-after-publishing-and-address-any-release-blocking-issues-discovered-during-verification",
+      "featureTitle": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
       "files": [
-        "frontend/src/components/member/MemberDashboardTab.tsx",
-        "frontend/src/components/member/MemberMembershipStatusCard.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/release/SmokeTestOverlay.tsx",
+        "frontend/src/release/smokeTestChecklist.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -43,7 +45,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-14"
+        "REQ-16"
       ],
       "confidence": "high"
     }

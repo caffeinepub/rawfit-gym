@@ -1,74 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Add member status indicator, admin pause-request notifications, and 3-day auto-reject for pending pause requests",
-  "priority": "normal",
+  "title": "Publish current preview changes to live (production)",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-12",
-      "text": "Implement automatic rejection of membership pause requests that remain in `pending` status for more than 3 days: when the backend detects an expired pending request, it must update the request status to `denied`, set `processedAt`, and set `adminMessage` to \"Auto-rejected due to no admin action within 3 days\" (unless an admin message already exists). This expiry handling must be applied consistently anywhere pause requests are read (admin list and member pause-request status queries) so the UI always reflects the auto-rejection.",
-      "target": "backend",
+      "id": "REQ-15",
+      "text": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "include the status indicator for members and a notification section for the admin where the pause request would show for approval or rejection. if admin takes no action then auto reject the request after 3 days"
+          "go live . publish the changes"
         ]
       },
       "acceptanceCriteria": [
-        "Given a pause request with status `pending` and `requestedAt` older than 3 days, the next time an admin or member queries pause request data, the request is persisted as `denied` with a non-null `processedAt`.",
-        "After auto-rejection, the request appears under processed/history (not pending) in the admin pause requests UI.",
-        "After auto-rejection, the member-facing pause-request status query returns a non-pending status and includes the admin message \"Auto-rejected due to no admin action within 3 days\".",
-        "A pending request that is less than or equal to 3 days old is not auto-rejected."
+        "The live/production URL serves the same UI and behavior as the current preview build (Version 36).",
+        "Both Admin and Member flows load successfully in production without requiring any new configuration steps from the user.",
+        "Backend canister upgrades successfully (including any required migration) and existing stored data remains intact after the production deployment."
       ]
     },
     {
-      "id": "REQ-13",
-      "text": "Add an admin notification section that surfaces pause requests awaiting action (approval/rejection) in the admin experience. The notification section must be accessible from the existing admin dashboard UI and must show at minimum the pending request list items with member ID, member name (if available), request timestamp, and quick action buttons to Approve or Deny (for pending only).",
-      "target": "frontend",
+      "id": "REQ-16",
+      "text": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "include the status indicator for members and a notification section for the admin where the pause request would show for approval or rejection."
+          "go live . publish the changes"
         ]
       },
       "acceptanceCriteria": [
-        "Admin Dashboard includes a visible \"Notifications\" (or equivalent) section showing pending pause requests without requiring navigation to the separate Pause Requests tab.",
-        "Each pending notification item shows: Member ID, Member Name (if available), Requested At timestamp, and Approve/Deny actions.",
-        "Approving/denying from the notification section updates the backend and removes/updates the item from the pending list after React Query refresh.",
-        "If there are no pending pause requests, the notification section shows an explicit empty state message in English (e.g., \"No pending pause requests\")."
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "text": "Add a clear member-facing status indicator showing the member’s membership status and pause-request status on the member dashboard. The indicator must distinguish at least: (1) Active (no pending request), (2) \"Pause request pending approval\", and (3) Paused (approved). If a request was denied (including auto-rejected), the UI must show that it was denied and display the admin message when present.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "include the status indicator for members"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Member dashboard displays a clearly labeled status area that includes the current membership status (Active/Paused/Inactive as applicable) and the pause request status when one exists.",
-        "When pause request status is pending, the UI shows the text \"Pause request pending approval\" and disables re-requesting pause.",
-        "When a pause request is denied (including auto-rejected), the UI shows a denied state and displays the admin message if provided by the backend.",
-        "When a pause request is approved and the membership is paused, the UI shows a paused state and the existing resume behavior remains available."
+        "Admin smoke tests pass in production: Internet Identity login, Admin dashboard loads, pause-request notification section is visible, and pending pause requests can be approved/denied successfully.",
+        "Member smoke tests pass in production: membership ID login works, Member dashboard loads, and membership status/pause-request status is rendered correctly for active/pending/paused/denied/expired states.",
+        "Backend health-check (used by the frontend connectivity-aware loading) succeeds in production when the canister is reachable and surfaces the correct error UI when it is not reachable."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in `backend/main.mo`.",
-    "Do not modify files under `frontend/src/components/ui` or any other `frontend.immutablePaths` entries; compose existing UI components instead.",
-    "Use English for all user-facing text."
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
+    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing real-time push notifications or websockets for admin notifications (notifications may update via standard React Query refetch/invalidations).",
-    "Adding new authentication providers beyond the existing Internet Identity (admin) and membership-ID member flow."
+    "Adding new features beyond publishing the already-implemented Version 36 changes.",
+    "Major UI redesign unrelated to the release/publish request.",
+    "Changing authentication models beyond what is required to ensure the published build matches the preview."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 25,
+  "projectStateVersion": 27,
   "summary": "RawFit Gym is a full-stack gym management web application (DFINITY Internet Computer backend in Motoko + React/Tailwind frontend) that supports admin operations (member registration, diet/workout charts, membership packages, attendance management, and video uploads) and member-facing experiences (personal dashboard with assigned plans, attendance history, QR-based check-in/out, and a location-gated video library). The system uses role-based access control (admin/user/guest), Internet Identity for admin authentication, a separate membership-ID based member login flow on the frontend, secure gym QR code generation/validation, and blob storage integration for video uploads.",
   "architectural_notes": [
     "Frontend uses React with TanStack React Query for data fetching/caching, mutations, and query invalidation patterns.",
@@ -393,6 +393,22 @@
         "REQ-14"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-promote-the-currently-deployed-preview-build-version-36-to-the-live-production-deployment-so-end-users-see-all-implemented-changes-member-pause-request-status-indicator-admin-notifications-pause-request-approvals-denials-and-auto-expiry-behavior",
+      "title": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-perform-a-production-smoke-test-pass-immediately-after-publishing-and-address-any-release-blocking-issues-discovered-during-verification",
+      "title": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -415,34 +431,6 @@
       "summary": "Adjust backend authorization for member self-service endpoints to support membership-ID-only sessions (anonymous principal). Any endpoint used by the member dashboard that currently requires `AccessControl.hasPermission(..., #user)` and/or `verifyMemberOwnership(caller, memberId)` must allow access based on the provided `memberId` alone (i.e., treat the membership ID as the authentication factor for member mode). Apply this to member dashboard read endpoints (e.g., member profile, assigned diet/workout, attendance history, current check-in status, gym location read, and video library read) and to member write endpoints (e.g., QR attendance check-in/out, pause/resume membership) while still enforcing that the member exists and (where applicable) the membership is active.",
       "reqIds": [
         "REQ-5"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Add admin-approval workflow for member-initiated membership pause: when a member requests pause from their profile, create a pending pause request and only pause the membership after an admin approves (with ability to approve/deny and track status).",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Backend: add persistent storage and APIs for pause requests, including: creating a pause request for a member; listing pending (and optionally historical) pause requests for admins; approving a specific pause request (which then pauses the member); denying a specific pause request; and querying a member’s current pause-request state so the member UI can show “Pending approval” vs “Paused”. All admin actions must remain admin-only.",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-8",
-      "summary": "Auto-reject membership pause requests if the admin takes no action within 3 days (request expiry/TTL with status updated to rejected/expired and surfaced in admin/member UIs).",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-9",
-      "summary": "Implement automatic rejection of membership pause requests that remain in `pending` status for more than 3 days: when the backend detects an expired pending request, it must update the request status to `denied`, set `processedAt`, and set `adminMessage` to \"Auto-rejected due to no admin action within 3 days\" (unless an admin message already exists). This expiry handling must be applied consistently anywhere pause requests are read (admin list and member pause-request status queries) so the UI always reflects the auto-rejection.",
-      "reqIds": [
-        "REQ-12"
       ],
       "status": "pending"
     }

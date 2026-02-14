@@ -8,14 +8,14 @@ import Time "mo:core/Time";
 import Text "mo:core/Text";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
-import Migration "migration";
+
 
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   let actorVersion = "v1.2.1";
   // Persistent admin role state needed for role delegation
@@ -1064,3 +1064,4 @@ actor {
     };
   };
 };
+
