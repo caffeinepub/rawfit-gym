@@ -8,17 +8,13 @@ import Time "mo:core/Time";
 import Text "mo:core/Text";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
-
-
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-
 actor {
   let actorVersion = "v1.2.1";
-  // Persistent admin role state needed for role delegation
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
@@ -82,7 +78,7 @@ actor {
     id : Text;
     packageType : Text;
     durationInMonths : Nat;
-    priceInRupees : Nat; // INR field
+    priceInRupees : Nat;
   };
 
   public type AttendanceRecord = {
@@ -90,7 +86,7 @@ actor {
     checkInTime : Time.Time;
     checkOutTime : ?Time.Time;
     status : Text;
-    method : AttendanceMethod; // QR scan or manual entry
+    method : AttendanceMethod;
   };
 
   public type AttendanceMethod = {
@@ -160,7 +156,7 @@ actor {
   var idCounter = 0;
 
   let autoCheckoutTimeout : Time.Time = 4 * 60 * 60 * 1_000_000_000;
-  let pauseRequestExpiryPeriod : Time.Time = 3 * 24 * 60 * 60 * 1_000_000_000; // 3 days in nanoseconds
+  let pauseRequestExpiryPeriod : Time.Time = 3 * 24 * 60 * 60 * 1_000_000_000;
 
   func isMembershipActive(memberId : Text) : Bool {
     let memberOpt = members.get(memberId);
@@ -506,6 +502,10 @@ actor {
       Runtime.trap("Membership is not active");
     };
 
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only record attendance for yourself or as admin");
+    };
+
     let now = Time.now();
     let currentStatus = getCurrentAttendanceStatus(memberId);
 
@@ -641,6 +641,10 @@ actor {
       Runtime.trap("Membership is not active");
     };
 
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own check-in status or as admin");
+    };
+
     let currentStatus = getCurrentAttendanceStatus(memberId);
     switch (currentStatus) {
       case (null) {
@@ -683,6 +687,10 @@ actor {
       Runtime.trap("Membership is not active");
     };
 
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own profile or as admin");
+    };
+
     findMemberProfile(memberId);
   };
 
@@ -693,6 +701,10 @@ actor {
 
     if (not isMembershipActive(memberId)) {
       Runtime.trap("Membership is not active");
+    };
+
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own diet or as admin");
     };
 
     let profile = findMemberProfile(memberId);
@@ -711,6 +723,10 @@ actor {
       Runtime.trap("Membership is not active");
     };
 
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own workout or as admin");
+    };
+
     let profile = findMemberProfile(memberId);
     switch (profile.assignedWorkoutId) {
       case (null) { Runtime.trap("No workout assigned") };
@@ -727,6 +743,10 @@ actor {
       Runtime.trap("Membership is not active");
     };
 
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own attendance history or as admin");
+    };
+
     let records = attendance.get(memberId);
     switch (records) {
       case (null) { [] };
@@ -734,13 +754,17 @@ actor {
     };
   };
 
-  public query func getVideoLibrary(memberId : Text) : async [VideoMetadata] {
+  public query ({ caller }) func getVideoLibrary(memberId : Text) : async [VideoMetadata] {
     if (not members.containsKey(memberId)) {
       Runtime.trap("Member not found");
     };
 
     if (not isMembershipActive(memberId)) {
       Runtime.trap("Membership is not active");
+    };
+
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own video library or as admin");
     };
 
     let memberProfile = findMemberProfile(memberId);
@@ -988,9 +1012,13 @@ actor {
     };
   };
 
-  public query func validateMemberLogin(memberId : Text) : async {
+  public query ({ caller }) func validateMemberLogin(memberId : Text) : async {
     isValid : Bool;
   } {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can validate member login");
+    };
+
     let memberOpt = members.get(memberId);
     switch (memberOpt) {
       case (null) {
@@ -1020,10 +1048,14 @@ actor {
     authorizedRadiusMeters := radius;
   };
 
-  public query func getGymLocation() : async {
+  public query ({ caller }) func getGymLocation() : async {
     location : LocationCoordinates;
     radius : Nat;
   } {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can access gym location");
+    };
+
     {
       location = gymLocation;
       radius = authorizedRadiusMeters;
@@ -1052,7 +1084,7 @@ actor {
     };
   };
 
-  public query func healthCheck() : async {
+  public query ({ caller }) func healthCheck() : async {
     ok : Bool;
     timestamp : Time.Time;
     version : Text;
@@ -1064,4 +1096,3 @@ actor {
     };
   };
 };
-

@@ -2,12 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-promote-the-currently-deployed-preview-build-version-36-to-the-live-production-deployment-so-end-users-see-all-implemented-changes-member-pause-request-status-indicator-admin-notifications-pause-request-approvals-denials-and-auto-expiry-behavior",
-      "featureTitle": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
+      "featureId": "feature-ensure-the-member-authentication-flow-in-usememberauth-ts-properly-handles-reactivated-memberships-and-does-not-cache-stale-pause-status",
+      "featureTitle": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/ProductionVersionNotice.tsx",
-        "frontend/src/release/expectedProductionVersion.ts"
+        "frontend/src/hooks/useMemberAuth.ts",
+        "frontend/src/pages/MemberLoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,17 +20,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-15"
+        "REQ-2"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-perform-a-production-smoke-test-pass-immediately-after-publishing-and-address-any-release-blocking-issues-discovered-during-verification",
-      "featureTitle": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
+      "featureId": "feature-verify-that-the-membership-status-update-flow-in-the-admin-memberstab-correctly-persists-status-changes-and-invalidates-relevant-queries",
+      "featureTitle": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/release/SmokeTestOverlay.tsx",
-        "frontend/src/release/smokeTestChecklist.ts"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -45,7 +42,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-16"
+        "REQ-3"
       ],
       "confidence": "high"
     }

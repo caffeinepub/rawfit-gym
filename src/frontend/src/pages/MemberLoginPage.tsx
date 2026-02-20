@@ -8,6 +8,7 @@ import { Loader2, ArrowLeft, AlertCircle, RefreshCw, WifiOff } from 'lucide-reac
 import { useMemberLogin } from '../hooks/useMemberAuth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useBackendHealthCheck } from '../hooks/useQueries';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface MemberLoginPageProps {
   onBack: () => void;
@@ -16,6 +17,7 @@ interface MemberLoginPageProps {
 function MemberLoginContent({ onBack }: MemberLoginPageProps) {
   const [membershipId, setMembershipId] = useState('');
   const { login, isLoading, error } = useMemberLogin();
+  const queryClient = useQueryClient();
   const [isRetrying, setIsRetrying] = useState(false);
   const [failureCount, setFailureCount] = useState(0);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
@@ -42,6 +44,8 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
     e.preventDefault();
     if (membershipId.trim()) {
       console.log('MemberLoginPage - Attempting login with ID:', membershipId.trim());
+      // Clear any cached data before login attempt
+      await queryClient.invalidateQueries({ queryKey: ['memberProfile', membershipId.trim()] });
       await login(membershipId.trim());
     }
   };
@@ -49,6 +53,10 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
   const handleRetry = async () => {
     setIsRetrying(true);
     console.log('MemberLoginPage - Retrying login...');
+    // Clear cached data before retry
+    if (membershipId.trim()) {
+      await queryClient.invalidateQueries({ queryKey: ['memberProfile', membershipId.trim()] });
+    }
     // Small delay to show retry state
     setTimeout(async () => {
       if (membershipId.trim()) {
@@ -217,9 +225,9 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
       {/* Footer */}
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
         <p>
-          © 2026. Built with ❤️ using{' '}
+          © {new Date().getFullYear()}. Built with ❤️ using{' '}
           <a
-            href="https://caffeine.ai"
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline font-medium"

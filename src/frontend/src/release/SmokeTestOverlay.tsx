@@ -55,7 +55,7 @@ export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlay
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl">Production Smoke Test - Version 36</DialogTitle>
+              <DialogTitle className="text-2xl">Production Smoke Test - Version 37</DialogTitle>
               <DialogDescription>
                 Verify release-critical flows after publishing to production
               </DialogDescription>
@@ -83,7 +83,14 @@ export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlay
                 />
               </div>
             </div>
-            <div className="text-3xl font-bold text-primary">{progressPercent}%</div>
+            {progressPercent === 100 ? (
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-lg font-bold">Complete ✓</span>
+              </div>
+            ) : (
+              <div className="text-3xl font-bold text-primary">{progressPercent}%</div>
+            )}
           </div>
 
           {/* Backend Health Status */}
@@ -98,7 +105,12 @@ export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlay
               <AlertDescription>
                 <div className="space-y-1">
                   <div>Status: {healthData.ok ? '✓ OK' : '✗ Failed'}</div>
-                  <div>{versionStatus.message}</div>
+                  <div>Backend Version: {healthData.version}</div>
+                  {versionStatus.isMatch ? (
+                    <div className="text-green-600 font-medium">✓ Version matches expected (v1.2.1)</div>
+                  ) : (
+                    <div className="text-orange-600 font-medium">⚠ {versionStatus.message}</div>
+                  )}
                   <div className="text-xs text-muted-foreground">
                     Timestamp: {new Date(Number(healthData.timestamp) / 1_000_000).toLocaleString()}
                   </div>
@@ -109,125 +121,139 @@ export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlay
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Backend Unreachable</AlertTitle>
-              <AlertDescription>Unable to connect to backend. Check deployment status.</AlertDescription>
+              <AlertDescription>
+                Unable to connect to backend. Verify deployment and network connectivity.
+              </AlertDescription>
             </Alert>
           )}
 
-          {/* Test Checklist Tabs */}
-          <Tabs defaultValue="health" className="flex-1 flex flex-col overflow-hidden">
+          {/* Test Categories */}
+          <Tabs defaultValue="health" className="flex-1 overflow-hidden flex flex-col">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="health" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
-                Health ({healthChecked}/{healthTests.length})
+                Health
+                <Badge variant="secondary" className="ml-1">
+                  {healthChecked}/{healthTests.length}
+                </Badge>
               </TabsTrigger>
               <TabsTrigger value="admin" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                Admin ({adminChecked}/{adminTests.length})
+                Admin
+                <Badge variant="secondary" className="ml-1">
+                  {adminChecked}/{adminTests.length}
+                </Badge>
               </TabsTrigger>
               <TabsTrigger value="member" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Member ({memberChecked}/{memberTests.length})
+                Member
+                <Badge variant="secondary" className="ml-1">
+                  {memberChecked}/{memberTests.length}
+                </Badge>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="health" className="flex-1 overflow-hidden">
+            <TabsContent value="health" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-3">
                   {healthTests.map((test) => (
-                    <TestItem
+                    <div
                       key={test.id}
-                      test={test}
-                      checked={checkedItems.has(test.id)}
-                      onToggle={() => toggleItem(test.id)}
-                    />
+                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        id={test.id}
+                        checked={checkedItems.has(test.id)}
+                        onCheckedChange={() => toggleItem(test.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <label
+                          htmlFor={test.id}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {test.description}
+                        </label>
+                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="admin" className="flex-1 overflow-hidden">
+            <TabsContent value="admin" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-3">
                   {adminTests.map((test) => (
-                    <TestItem
+                    <div
                       key={test.id}
-                      test={test}
-                      checked={checkedItems.has(test.id)}
-                      onToggle={() => toggleItem(test.id)}
-                    />
+                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        id={test.id}
+                        checked={checkedItems.has(test.id)}
+                        onCheckedChange={() => toggleItem(test.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <label
+                          htmlFor={test.id}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {test.description}
+                        </label>
+                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="member" className="flex-1 overflow-hidden">
+            <TabsContent value="member" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-3">
                   {memberTests.map((test) => (
-                    <TestItem
+                    <div
                       key={test.id}
-                      test={test}
-                      checked={checkedItems.has(test.id)}
-                      onToggle={() => toggleItem(test.id)}
-                    />
+                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        id={test.id}
+                        checked={checkedItems.has(test.id)}
+                        onCheckedChange={() => toggleItem(test.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <label
+                          htmlFor={test.id}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {test.description}
+                        </label>
+                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
             </TabsContent>
           </Tabs>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button variant="outline" onClick={() => setCheckedItems(new Set())}>
-              Clear All
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          {progressPercent === 100 && (
+            <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              All Tests Complete
             </Button>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setCheckedItems(new Set(SMOKE_TEST_CHECKLIST.map((t) => t.id)))}
-              >
-                Check All
-              </Button>
-              <Button onClick={onClose} disabled={totalChecked < totalTests}>
-                {totalChecked === totalTests ? 'Complete ✓' : 'Close'}
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface TestItemProps {
-  test: {
-    id: string;
-    description: string;
-    instructions: string;
-  };
-  checked: boolean;
-  onToggle: () => void;
-}
-
-function TestItem({ test, checked, onToggle }: TestItemProps) {
-  return (
-    <div
-      className={`p-4 border rounded-lg transition-colors ${
-        checked ? 'bg-primary/5 border-primary' : 'bg-card hover:bg-muted/50'
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <Checkbox checked={checked} onCheckedChange={onToggle} className="mt-1" />
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <p className={`font-medium ${checked ? 'line-through text-muted-foreground' : ''}`}>
-              {test.description}
-            </p>
-            {checked && <Badge variant="outline" className="text-xs">✓ Done</Badge>}
-          </div>
-          <p className="text-sm text-muted-foreground">{test.instructions}</p>
-        </div>
-      </div>
-    </div>
   );
 }

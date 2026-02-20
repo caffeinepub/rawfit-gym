@@ -1,43 +1,45 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T02:00:10.859Z",
+  "generatedAt": "2026-02-20T02:15:00.887Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
+    "total": 3,
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-15",
-        "summary": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
+        "id": "REQ-1",
+        "summary": "Fix the backend member login validation logic to correctly recognize members whose membership status has been changed from paused back to active by an admin",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/release/expectedProductionVersion.ts",
-          "frontend/src/components/ProductionVersionNotice.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/release/expectedProductionVersion.ts",
-          "frontend/src/components/ProductionVersionNotice.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx"
         ]
       },
       {
-        "id": "REQ-16",
-        "summary": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
+        "id": "REQ-3",
+        "summary": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/release/smokeTestChecklist.ts",
-          "frontend/src/release/SmokeTestOverlay.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/admin/MembersTab.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/release/smokeTestChecklist.ts",
-          "frontend/src/release/SmokeTestOverlay.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
@@ -45,14 +47,13 @@
   "changedFiles": [
     "backend/main.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/ProductionVersionNotice.tsx",
-    "frontend/src/release/SmokeTestOverlay.tsx",
-    "frontend/src/release/expectedProductionVersion.ts",
-    "frontend/src/release/smokeTestChecklist.ts",
+    "frontend/src/hooks/useMemberAuth.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/MemberLoginPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

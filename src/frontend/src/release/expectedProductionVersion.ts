@@ -1,10 +1,23 @@
-// Expected production version for Version 36
+// Expected production version for Version 37
 export const EXPECTED_PRODUCTION_VERSION = 'v1.2.1';
 
-// Version comparison utility
+// Normalize version string for comparison (trim whitespace, handle common prefixes)
+function normalizeVersion(version: string): string {
+  return version
+    .trim()
+    .toLowerCase()
+    .replace(/^version\s*/i, '')
+    .replace(/^v/, '');
+}
+
+// Version comparison utility with normalization
 export function isVersionMatch(reportedVersion: string | undefined): boolean {
   if (!reportedVersion) return false;
-  return reportedVersion === EXPECTED_PRODUCTION_VERSION;
+  
+  const normalizedReported = normalizeVersion(reportedVersion);
+  const normalizedExpected = normalizeVersion(EXPECTED_PRODUCTION_VERSION);
+  
+  return normalizedReported === normalizedExpected;
 }
 
 // Version status for UI display
@@ -33,7 +46,7 @@ export function getVersionStatus(reportedVersion: string | undefined): {
 
   return {
     isMatch: false,
-    message: `Version mismatch: expected ${EXPECTED_PRODUCTION_VERSION}, got ${reportedVersion}`,
+    message: `Version mismatch: expected ${EXPECTED_PRODUCTION_VERSION}, but backend reports ${reportedVersion}`,
     severity: 'warning',
   };
 }

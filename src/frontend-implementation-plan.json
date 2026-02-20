@@ -1,57 +1,47 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Production publish verification + smoke-test overlay for Version 36",
+  "title": "Fix member login after membership reactivation",
   "requirements": [
     {
-      "id": "REQ-15",
-      "summary": "Add production verification signals to ensure the live UI matches preview Version 36 behavior and detect version mismatches early.",
+      "id": "REQ-2",
+      "summary": "Clear cached authentication state and fetch fresh membership status on each member login attempt to properly handle reactivated memberships",
       "acceptanceCriteria": [
-        "The live/production URL serves the same UI and behavior as the current preview build (Version 36).",
-        "Both Admin and Member flows load successfully in production without requiring any new configuration steps from the user.",
-        "Backend canister upgrades successfully (including any required migration) and existing stored data remains intact after the production deployment."
+        "The frontend clears any cached authentication state when a member attempts to log in",
+        "Login errors for reactivated members are resolved and do not show the 'contact gym' message inappropriately",
+        "The authentication hook fetches fresh membership status on each login attempt"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/release/expectedProductionVersion.ts",
-          "operation": "create",
-          "description": "Define the expected backend/app version string for the production release (Version 36) so the UI can verify it after deployment."
-        },
-        {
-          "path": "frontend/src/components/ProductionVersionNotice.tsx",
-          "operation": "create",
-          "description": "Add a small, non-blocking UI notice component that can display when the backend-reported version differs from the expected Version 36 or when version is unavailable, to help validate the production promotion."
-        },
-        {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/hooks/useMemberAuth.ts",
           "operation": "modify",
-          "description": "Wire expected Version 36 verification into the existing health-check flow: compare backend healthCheck() version against the expected production version and render ProductionVersionNotice only when a mismatch is detected (no behavior change when matching)."
+          "description": "Modify the member login flow to clear any cached membership data before validating credentials. Add logic to invalidate or refetch member profile queries immediately after successful login validation to ensure the latest membership status is retrieved from the backend. Remove any stale status checks that might prevent reactivated members from logging in."
+        },
+        {
+          "path": "frontend/src/pages/MemberLoginPage.tsx",
+          "operation": "modify",
+          "description": "Update the login submission handler to explicitly clear query cache for member-related data before calling the login function. Ensure error messages distinguish between invalid credentials and actual inactive status. Add a query invalidation call after successful login to force fresh data fetch."
         }
       ]
     },
     {
-      "id": "REQ-16",
-      "summary": "Provide a production smoke-test overlay/checklist (Admin + Member) to verify release-critical flows immediately after publishing and quickly spot release-blocking issues.",
+      "id": "REQ-3",
+      "summary": "Ensure membership status updates in admin MembersTab immediately persist and invalidate cached member queries",
       "acceptanceCriteria": [
-        "Admin smoke tests pass in production: Internet Identity login, Admin dashboard loads, pause-request notification section is visible, and pending pause requests can be approved/denied successfully.",
-        "Member smoke tests pass in production: membership ID login works, Member dashboard loads, and membership status/pause-request status is rendered correctly for active/pending/paused/denied/expired states.",
-        "Backend health-check (used by the frontend connectivity-aware loading) succeeds in production when the canister is reachable and surfaces the correct error UI when it is not reachable."
+        "When admin changes a member status from paused to active, the change is immediately reflected in the backend",
+        "Query invalidation ensures the updated status is visible across all admin views",
+        "No stale cached data prevents the status change from taking effect"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/release/smokeTestChecklist.ts",
-          "operation": "create",
-          "description": "Add an explicit production smoke-test checklist (Admin + Member + health-check verification) that can be displayed in-app for post-publish verification."
-        },
-        {
-          "path": "frontend/src/release/SmokeTestOverlay.tsx",
-          "operation": "create",
-          "description": "Create an overlay component that renders the smoke-test checklist along with live readouts from the existing health-check query (reachable/unreachable + reported version) to support immediate production verification."
-        },
-        {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/components/admin/MembersTab.tsx",
           "operation": "modify",
-          "description": "Wire SmokeTestOverlay behind a URL parameter toggle (e.g., smoketest=1 using the existing URL param helpers) so it can be used in production verification without impacting normal end users."
+          "description": "Review and ensure the member update mutation includes comprehensive query invalidation for all member-related queries after status changes. Add specific invalidation for member profile, membership validation, and attendance queries to prevent stale cached data. Verify the mutation success handler properly awaits invalidation completion before showing success feedback."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Review the useUpdateMember mutation hook to ensure it invalidates all relevant query keys including member profiles, member lists, and validation queries. Add explicit invalidation for validateMemberLogin query key if it exists in the cache. Ensure the mutation properly handles optimistic updates or disables cached queries during status transitions."
         }
       ]
     }

@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Publish the currently deployed preview build (Version 36) to the live/production deployment so end users receive all implemented changes.
+**Goal:** Fix member login functionality for memberships that have been reactivated from paused status by an admin.
 
 **Planned changes:**
-- Promote the preview deployment (Version 36) to production, including any required backend canister upgrade/migration while preserving existing stored data.
-- Run a production smoke-test for Admin and Member flows and fix any release-blocking issues found during verification.
+- Update backend login validation to correctly recognize members with active status regardless of previous pause history
+- Ensure frontend authentication clears cached state and fetches fresh membership status on each login attempt
+- Verify admin membership status update flow properly persists changes and invalidates queries
 
-**User-visible outcome:** The live/production URL matches the current preview (Version 36) UI and behavior, and Admin/Member experiences (including pause-request status, notifications, approvals/denials, and auto-expiry behavior) work correctly in production.
+**User-visible outcome:** Members whose memberships have been reactivated by an admin can successfully log in without encountering "contact gym" errors.

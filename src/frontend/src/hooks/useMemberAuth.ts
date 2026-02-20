@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useActor } from './useActor';
+import { useQueryClient } from '@tanstack/react-query';
 
 const MEMBER_AUTH_KEY = 'rawfit_member_auth';
 const MEMBER_AUTH_CHANGED_EVENT = 'member-auth-changed';
@@ -80,6 +81,7 @@ export function useMemberAuth() {
 
 export function useMemberLogin() {
   const { actor, isFetching } = useActor();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,10 +98,17 @@ export function useMemberLogin() {
         throw new Error('Server unavailable. Please try again in a moment.');
       }
 
+      // Clear any cached member-related queries before validation
+      // This ensures we fetch fresh data from the backend
+      console.log('useMemberLogin - Clearing cached member queries');
+      await queryClient.invalidateQueries({ queryKey: ['memberProfile', memberId] });
+      await queryClient.invalidateQueries({ queryKey: ['members'] });
+      await queryClient.invalidateQueries({ queryKey: ['validateMemberLogin', memberId] });
+
       // Use the public validateMemberLogin endpoint
       let validationResult;
       try {
-        console.log('useMemberLogin - Validating member login...');
+        console.log('useMemberLogin - Validating member login with fresh data...');
         validationResult = await actor.validateMemberLogin(memberId);
         console.log('useMemberLogin - Validation result:', validationResult);
       } catch (err) {

@@ -1,4 +1,4 @@
-// Production smoke-test checklist for Version 36
+// Production smoke-test checklist for Version 37
 
 export interface SmokeTestItem {
   id: string;

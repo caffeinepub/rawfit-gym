@@ -33,9 +33,9 @@ function AppContent() {
     enabled: isAdminAuthenticated,
   });
 
-  // Health check state for prolonged loading detection
+  // Health check state for prolonged loading detection and smoke test overlay
   const [showHealthCheck, setShowHealthCheck] = useState(false);
-  const { data: healthData, refetch: refetchHealth } = useBackendHealthCheck();
+  const { data: healthData, refetch: refetchHealth, isError: healthCheckError } = useBackendHealthCheck();
 
   // Smoke test overlay state (controlled by URL parameter)
   const [showSmokeTest, setShowSmokeTest] = useState(false);
@@ -60,9 +60,10 @@ function AppContent() {
       profileLoading,
       roleLoading,
       userRole,
-      loginError: loginError?.message
+      loginError: loginError?.message,
+      healthData: healthData ? { version: healthData.version, ok: healthData.ok } : null,
     });
-  }, [isAdminAuthenticated, isMemberAuthenticated, isAuthenticated, isInitializing, memberAuthLoading, profileLoading, roleLoading, userRole, loginError]);
+  }, [isAdminAuthenticated, isMemberAuthenticated, isAuthenticated, isInitializing, memberAuthLoading, profileLoading, roleLoading, userRole, loginError, healthData]);
 
   // Detect prolonged loading after admin authentication and trigger health check
   useEffect(() => {
@@ -94,7 +95,7 @@ function AppContent() {
   // Show loading state while fetching admin user data after authentication
   if (isAdminAuthenticated && (profileLoading || roleLoading)) {
     // If health check triggered and backend is unreachable, show connectivity error
-    if (showHealthCheck && healthData === null) {
+    if (showHealthCheck && (healthData === null || healthCheckError)) {
       return (
         <div className="flex h-screen items-center justify-center bg-background p-4">
           <div className="max-w-md w-full space-y-4">

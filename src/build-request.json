@@ -1,54 +1,69 @@
 {
   "kind": "build_request",
-  "title": "Publish current preview changes to live (production)",
+  "title": "Fix member login after membership reactivation",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-15",
-      "text": "Promote the currently deployed preview build (Version 36) to the live/production deployment so end users see all implemented changes (member pause-request status indicator, admin notifications, pause-request approvals/denials, and auto-expiry behavior).",
-      "target": "both",
+      "id": "REQ-1",
+      "text": "Fix the backend member login validation logic to correctly recognize members whose membership status has been changed from paused back to active by an admin",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-7"
         ],
         "quotes": [
-          "go live . publish the changes"
+          "Member is not able to login after admin marked the membership status as active again after is was paused"
         ]
       },
       "acceptanceCriteria": [
-        "The live/production URL serves the same UI and behavior as the current preview build (Version 36).",
-        "Both Admin and Member flows load successfully in production without requiring any new configuration steps from the user.",
-        "Backend canister upgrades successfully (including any required migration) and existing stored data remains intact after the production deployment."
+        "A member whose status was changed from paused to active can successfully log in using their membership ID",
+        "The login validation checks the current membership status and does not fail based on historical pause state",
+        "Members with active status can authenticate regardless of previous pause history"
       ]
     },
     {
-      "id": "REQ-16",
-      "text": "Perform a production smoke-test pass immediately after publishing and address any release-blocking issues discovered during verification.",
-      "target": "both",
+      "id": "REQ-2",
+      "text": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-7"
         ],
         "quotes": [
-          "go live . publish the changes"
+          "When member tries to login , it shows login failed. Contact gym if your membership should be active"
         ]
       },
       "acceptanceCriteria": [
-        "Admin smoke tests pass in production: Internet Identity login, Admin dashboard loads, pause-request notification section is visible, and pending pause requests can be approved/denied successfully.",
-        "Member smoke tests pass in production: membership ID login works, Member dashboard loads, and membership status/pause-request status is rendered correctly for active/pending/paused/denied/expired states.",
-        "Backend health-check (used by the frontend connectivity-aware loading) succeeds in production when the canister is reachable and surfaces the correct error UI when it is not reachable."
+        "The frontend clears any cached authentication state when a member attempts to log in",
+        "Login errors for reactivated members are resolved and do not show the 'contact gym' message inappropriately",
+        "The authentication hook fetches fresh membership status on each login attempt"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When admin changes a member status from paused to active, the change is immediately reflected in the backend",
+        "Query invalidation ensures the updated status is visible across all admin views",
+        "No stale cached data prevents the status change from taking effect"
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
-    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Use English for any user-facing text."
+    "Do not modify the Internet Identity authentication mechanism",
+    "Preserve all existing membership status types and enum values",
+    "Maintain backward compatibility with existing member records"
   ],
   "nonGoals": [
-    "Adding new features beyond publishing the already-implemented Version 36 changes.",
-    "Major UI redesign unrelated to the release/publish request.",
-    "Changing authentication models beyond what is required to ensure the published build matches the preview."
+    "Changing the UI design of the login pages",
+    "Adding new membership status types",
+    "Modifying the admin approval workflow for pause requests"
   ],
   "imageRequirements": {
     "required": [],
