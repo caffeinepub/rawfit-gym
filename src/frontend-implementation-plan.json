@@ -1,47 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix member login after membership reactivation",
+  "title": "Fix Member Login Failure",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Clear cached authentication state and fetch fresh membership status on each member login attempt to properly handle reactivated memberships",
+      "id": "REQ-1",
+      "summary": "Fix member login authentication flow to properly validate membership IDs and display specific error messages instead of generic 'failed' status",
       "acceptanceCriteria": [
-        "The frontend clears any cached authentication state when a member attempts to log in",
-        "Login errors for reactivated members are resolved and do not show the 'contact gym' message inappropriately",
-        "The authentication hook fetches fresh membership status on each login attempt"
+        "Members can successfully log in using their membership ID",
+        "Login errors display specific, actionable error messages instead of generic 'failed' status",
+        "The useMemberAuth hook properly validates membership IDs against the backend",
+        "The MemberLoginPage component handles authentication errors gracefully with clear user feedback"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useMemberAuth.ts",
           "operation": "modify",
-          "description": "Modify the member login flow to clear any cached membership data before validating credentials. Add logic to invalidate or refetch member profile queries immediately after successful login validation to ensure the latest membership status is retrieved from the backend. Remove any stale status checks that might prevent reactivated members from logging in."
+          "description": "Enhance the login function in useMemberAuth to call the backend validateMemberLogin method with proper error handling. Add detailed console logging to capture validation responses, network errors, and authentication state changes. Parse backend responses to extract specific error types (invalid ID, expired membership, inactive member) and store them in state. Ensure localStorage and cross-tab synchronization logic remains unchanged per constraints."
         },
         {
           "path": "frontend/src/pages/MemberLoginPage.tsx",
           "operation": "modify",
-          "description": "Update the login submission handler to explicitly clear query cache for member-related data before calling the login function. Ensure error messages distinguish between invalid credentials and actual inactive status. Add a query invalidation call after successful login to force fresh data fetch."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Ensure membership status updates in admin MembersTab immediately persist and invalidate cached member queries",
-      "acceptanceCriteria": [
-        "When admin changes a member status from paused to active, the change is immediately reflected in the backend",
-        "Query invalidation ensures the updated status is visible across all admin views",
-        "No stale cached data prevents the status change from taking effect"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/MembersTab.tsx",
-          "operation": "modify",
-          "description": "Review and ensure the member update mutation includes comprehensive query invalidation for all member-related queries after status changes. Add specific invalidation for member profile, membership validation, and attendance queries to prevent stale cached data. Verify the mutation success handler properly awaits invalidation completion before showing success feedback."
+          "description": "Update error display logic to show specific, user-friendly error messages based on the error type returned from useMemberAuth. Add distinct error states for: invalid membership ID, expired membership, inactive member account, and network/server errors. Include actionable guidance in error messages (e.g., 'Contact the gym desk to renew your membership' for expired memberships). Preserve existing retry logic and query cache clearing behavior."
         },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Review the useUpdateMember mutation hook to ensure it invalidates all relevant query keys including member profiles, member lists, and validation queries. Add explicit invalidation for validateMemberLogin query key if it exists in the cache. Ensure the mutation properly handles optimistic updates or disables cached queries during status transitions."
+          "description": "Add a new React Query mutation hook useMemberLoginMutation that wraps the backend memberLogin method with comprehensive error logging. Capture and log request parameters, response data, response timing, and any errors. Return structured error information including error type, message, and original backend response for debugging. Ensure the hook integrates with existing query invalidation patterns."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add comprehensive error logging and diagnostics to the member authentication flow to capture detailed failure information",
+      "acceptanceCriteria": [
+        "Console logs show detailed error information when member login fails",
+        "Backend validateMemberLogin function returns specific error codes for different failure scenarios (invalid ID, expired membership, etc.)",
+        "Frontend displays user-friendly error messages based on specific failure reasons"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useMemberAuth.ts",
+          "operation": "modify",
+          "description": "Add structured console logging throughout the authentication flow capturing: login attempt timestamp, membership ID (sanitized/masked for security), backend validation request/response, localStorage operations, and authentication state transitions. Log error stack traces and network error details. Include log levels (info, warn, error) to distinguish between normal flow and failures. Add a unique session/attempt ID to correlate related log entries."
+        },
+        {
+          "path": "frontend/src/pages/MemberLoginPage.tsx",
+          "operation": "modify",
+          "description": "Add console logging for user interaction events including: login form submission, input validation, error display triggers, and retry attempts. Log the full error object structure received from useMemberAuth to help diagnose error mapping issues. Include timestamp and attempt count in logs for debugging repeated failures."
+        },
+        {
+          "path": "frontend/src/lib/memberAuthLogger.ts",
+          "operation": "create",
+          "description": "Create a dedicated logging utility for member authentication with functions to log structured events including loginAttempt, validationRequest, validationResponse, validationError, localStorageOperation, and crossTabSync. Each log entry should include timestamp, attempt ID, membership ID (masked), event type, and relevant data. Export a singleton logger instance configured with appropriate log levels for development vs production."
         }
       ]
     }

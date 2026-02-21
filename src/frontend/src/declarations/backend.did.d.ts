@@ -170,6 +170,14 @@ export interface _SERVICE {
     { 'radius' : bigint, 'location' : LocationCoordinates }
   >,
   'getMemberByContactInfo' : ActorMethod<[string], [] | [MemberProfile]>,
+  'getMemberByMembershipId' : ActorMethod<
+    [string],
+    {
+      'member' : [] | [MemberProfile],
+      'status' : MembershipStatus,
+      'isValid' : boolean,
+    }
+  >,
   'getMemberProfile' : ActorMethod<[string], MemberProfile>,
   'getPauseRequestStatus' : ActorMethod<
     [string],
@@ -190,6 +198,10 @@ export interface _SERVICE {
   >,
   'initiatePauseRequest' : ActorMethod<[string], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'memberLogin' : ActorMethod<
+    [string],
+    { 'status' : MembershipStatus, 'name' : string, 'isValid' : boolean }
+  >,
   'processAutoCheckout' : ActorMethod<[string], undefined>,
   'recordAttendance' : ActorMethod<[AttendanceRecord], undefined>,
   'recordQRAttendance' : ActorMethod<[string, boolean], undefined>,

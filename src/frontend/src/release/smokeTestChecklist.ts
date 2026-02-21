@@ -1,116 +1,136 @@
-// Production smoke-test checklist for Version 37
-
+// Production smoke-test checklist for Version 45 (Production Mainnet Deployment)
 export interface SmokeTestItem {
   id: string;
-  category: 'admin' | 'member' | 'health';
+  category: 'health' | 'admin' | 'member';
   description: string;
-  instructions: string;
+  checked: boolean;
 }
 
-export const SMOKE_TEST_CHECKLIST: SmokeTestItem[] = [
-  // Health Check Tests
+export const smokeTestChecklist: SmokeTestItem[] = [
+  // Health Checks
   {
-    id: 'health-1',
+    id: 'health-backend',
     category: 'health',
-    description: 'Backend health check succeeds',
-    instructions: 'Verify that the backend reports "ok: true" and returns version v1.2.1',
+    description: 'Backend health check returns OK on mainnet',
+    checked: false,
   },
   {
-    id: 'health-2',
+    id: 'health-version',
     category: 'health',
-    description: 'Frontend-backend connectivity',
-    instructions: 'Confirm no connectivity errors appear during normal operation',
+    description: 'Backend version matches expected (v1.3.0.0)',
+    checked: false,
   },
-
-  // Admin Flow Tests
+  
+  // Admin Flow
   {
-    id: 'admin-1',
+    id: 'admin-login',
     category: 'admin',
-    description: 'Internet Identity login works',
-    instructions: 'Click Admin Login → authenticate with Internet Identity → verify successful login',
+    description: 'Admin can log in via Internet Identity (production)',
+    checked: false,
   },
   {
-    id: 'admin-2',
+    id: 'admin-dashboard',
     category: 'admin',
-    description: 'Admin dashboard loads',
-    instructions: 'After login, verify the admin dashboard displays with all tabs visible',
+    description: 'Admin dashboard loads with all tabs',
+    checked: false,
   },
   {
-    id: 'admin-3',
+    id: 'admin-members',
     category: 'admin',
-    description: 'Pause request notification section visible',
-    instructions: 'Navigate to Dashboard tab → verify "Pending Pause Requests" widget appears',
+    description: 'Admin can view members list',
+    checked: false,
   },
   {
-    id: 'admin-4',
+    id: 'admin-pause-requests',
     category: 'admin',
-    description: 'Approve pause request',
-    instructions: 'If pending requests exist, click Approve → add optional message → verify success',
+    description: 'Admin can view and manage pause requests',
+    checked: false,
   },
   {
-    id: 'admin-5',
+    id: 'admin-qr-code',
     category: 'admin',
-    description: 'Deny pause request',
-    instructions: 'If pending requests exist, click Deny → add optional message → verify success',
+    description: 'Admin can generate gym QR code',
+    checked: false,
   },
   {
-    id: 'admin-6',
+    id: 'admin-videos',
     category: 'admin',
-    description: 'Pause Requests tab loads',
-    instructions: 'Click Pause Requests tab → verify pending and processed requests display correctly',
-  },
-
-  // Member Flow Tests
-  {
-    id: 'member-1',
-    category: 'member',
-    description: 'Membership ID login works',
-    instructions: 'Click Member Login → enter valid membership ID → verify successful login',
+    description: 'Admin can access and manage video library',
+    checked: false,
   },
   {
-    id: 'member-2',
+    id: 'admin-packages',
+    category: 'admin',
+    description: 'Admin can manage membership packages',
+    checked: false,
+  },
+  
+  // Member Flow
+  {
+    id: 'member-login',
     category: 'member',
-    description: 'Member dashboard loads',
-    instructions: 'After login, verify member dashboard displays with Dashboard and Video Library tabs',
+    description: 'Member can log in with membership ID',
+    checked: false,
   },
   {
-    id: 'member-3',
+    id: 'member-dashboard',
     category: 'member',
-    description: 'Membership status card displays correctly',
-    instructions: 'Verify status card shows Active/Paused/Expired status with correct styling',
+    description: 'Member dashboard loads correctly',
+    checked: false,
   },
   {
-    id: 'member-4',
+    id: 'member-status',
     category: 'member',
-    description: 'Pause request status (pending)',
-    instructions: 'If pause request pending, verify "Awaiting Admin Approval" message displays',
+    description: 'Member can view membership status',
+    checked: false,
   },
   {
-    id: 'member-5',
+    id: 'member-pause',
     category: 'member',
-    description: 'Pause request status (denied)',
-    instructions: 'If pause request denied, verify admin message displays with orange styling',
+    description: 'Member can initiate pause request',
+    checked: false,
   },
   {
-    id: 'member-6',
+    id: 'member-resume',
     category: 'member',
-    description: 'Pause request status (paused)',
-    instructions: 'If membership paused, verify "Paused" badge and Resume button display',
+    description: 'Member can resume paused membership',
+    checked: false,
   },
   {
-    id: 'member-7',
+    id: 'member-qr-scan',
     category: 'member',
-    description: 'Request pause functionality',
-    instructions: 'For active membership, click "Request Pause" → verify success toast and pending status',
+    description: 'Member can access QR attendance scanner',
+    checked: false,
   },
   {
-    id: 'member-8',
+    id: 'member-videos',
     category: 'member',
-    description: 'Resume membership functionality',
-    instructions: 'For paused membership, click "Resume Membership" → verify success and active status',
+    description: 'Member can access video library with GPS validation',
+    checked: false,
   },
 ];
 
-export function getSmokeTestsByCategory(category: 'admin' | 'member' | 'health'): SmokeTestItem[] {
-  return SMOKE_TEST_CHECKLIST.filter((test) => test.category === category);
+export function getCategoryProgress(category: 'health' | 'admin' | 'member', items: SmokeTestItem[]): {
+  completed: number;
+  total: number;
+  percentage: number;
+} {
+  const categoryItems = items.filter(item => item.category === category);
+  const completed = categoryItems.filter(item => item.checked).length;
+  const total = categoryItems.length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
+  return { completed, total, percentage };
+}
+
+export function getOverallProgress(items: SmokeTestItem[]): {
+  completed: number;
+  total: number;
+  percentage: number;
+} {
+  const completed = items.filter(item => item.checked).length;
+  const total = items.length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
+  return { completed, total, percentage };
 }

@@ -1,5 +1,5 @@
-// Expected production version for Version 37
-export const EXPECTED_PRODUCTION_VERSION = 'v1.2.1';
+// Expected production version for Version 45 (Production Mainnet Deployment)
+export const EXPECTED_PRODUCTION_VERSION = 'v1.3.0.0';
 
 // Normalize version string for comparison (trim whitespace, handle common prefixes)
 function normalizeVersion(version: string): string {

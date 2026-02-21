@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-20T02:15:00.887Z",
+  "generatedAt": "2026-02-21T00:42:47.660Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,47 +12,52 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the backend member login validation logic to correctly recognize members whose membership status has been changed from paused back to active by an admin",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
+        "summary": "Investigate and fix the member login authentication flow that is currently showing 'failed' errors when members attempt to log in with their membership ID",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useMemberAuth.ts",
-          "frontend/src/pages/MemberLoginPage.tsx"
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
           "frontend/src/hooks/useMemberAuth.ts",
-          "frontend/src/pages/MemberLoginPage.tsx"
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Add error logging and diagnostics to the member authentication flow to capture why login attempts are failing, including backend validation responses and network errors",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/lib/memberAuthLogger.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/lib/memberAuthLogger.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/admin/MembersTab.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "summary": "Verify that the backend's validateMemberLogin method correctly queries member records and returns appropriate success/failure responses with proper error handling",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/hooks/useMemberAuth.ts",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/lib/memberAuthLogger.ts",
     "frontend/src/pages/MemberLoginPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

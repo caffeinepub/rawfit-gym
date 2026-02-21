@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
+import { Loader2, ArrowLeft, AlertCircle, RefreshCw, XCircle, Clock, UserX } from 'lucide-react';
 import { useMemberLogin } from '../hooks/useMemberAuth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useBackendHealthCheck } from '../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface MemberLoginPageProps {
@@ -16,63 +15,95 @@ interface MemberLoginPageProps {
 
 function MemberLoginContent({ onBack }: MemberLoginPageProps) {
   const [membershipId, setMembershipId] = useState('');
+  const [attemptCount, setAttemptCount] = useState(0);
   const { login, isLoading, error } = useMemberLogin();
   const queryClient = useQueryClient();
   const [isRetrying, setIsRetrying] = useState(false);
-  const [failureCount, setFailureCount] = useState(0);
-  const [showHealthCheck, setShowHealthCheck] = useState(false);
-  const { data: healthData, refetch: refetchHealth } = useBackendHealthCheck();
-
-  // Log errors for debugging
-  useEffect(() => {
-    if (error) {
-      console.error('MemberLoginPage - Login error:', error);
-      setFailureCount((prev) => prev + 1);
-    }
-  }, [error]);
-
-  // Trigger health check after multiple failures
-  useEffect(() => {
-    if (failureCount >= 2 && error) {
-      console.log('MemberLoginPage - Multiple failures detected, triggering health check');
-      setShowHealthCheck(true);
-      refetchHealth();
-    }
-  }, [failureCount, error, refetchHealth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (membershipId.trim()) {
-      console.log('MemberLoginPage - Attempting login with ID:', membershipId.trim());
-      // Clear any cached data before login attempt
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile', membershipId.trim()] });
+      const timestamp = new Date().toISOString();
+      const currentAttempt = attemptCount + 1;
+      
+      console.log(`[MemberLogin] Form submission - Attempt ${currentAttempt} at ${timestamp}`, {
+        membershipIdLength: membershipId.trim().length,
+        attemptCount: currentAttempt,
+      });
+
+      // Clear all cached data before login attempt
+      queryClient.removeQueries({ queryKey: ['memberProfile', membershipId.trim()] });
+      queryClient.removeQueries({ queryKey: ['members'] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus', membershipId.trim()] });
+      
+      setAttemptCount(currentAttempt);
       await login(membershipId.trim());
     }
   };
 
   const handleRetry = async () => {
     setIsRetrying(true);
-    console.log('MemberLoginPage - Retrying login...');
-    // Clear cached data before retry
+    const timestamp = new Date().toISOString();
+    const currentAttempt = attemptCount + 1;
+    
+    console.log(`[MemberLogin] Retry button clicked - Attempt ${currentAttempt} at ${timestamp}`, {
+      membershipId: membershipId.trim(),
+      errorType: error?.type,
+      attemptCount: currentAttempt,
+    });
+    
+    // Clear all cached data before retry
     if (membershipId.trim()) {
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile', membershipId.trim()] });
+      queryClient.removeQueries({ queryKey: ['memberProfile', membershipId.trim()] });
+      queryClient.removeQueries({ queryKey: ['members'] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus', membershipId.trim()] });
     }
+    
     // Small delay to show retry state
     setTimeout(async () => {
       if (membershipId.trim()) {
+        setAttemptCount(currentAttempt);
         await login(membershipId.trim());
       }
       setIsRetrying(false);
     }, 300);
   };
 
-  const handleReload = () => {
-    window.location.reload();
+  // Get error icon based on error type
+  const getErrorIcon = () => {
+    if (!error) return <AlertCircle className="h-4 w-4" />;
+    
+    switch (error.type) {
+      case 'not-found':
+        return <XCircle className="h-4 w-4" />;
+      case 'expired':
+        return <Clock className="h-4 w-4" />;
+      case 'inactive':
+        return <UserX className="h-4 w-4" />;
+      default:
+        return <AlertCircle className="h-4 w-4" />;
+    }
   };
 
-  // Determine if error is a server/connection error or a validation error
-  const isServerError = error?.includes('Server unavailable') || error?.includes('connection');
-  const isBackendUnreachable = showHealthCheck && healthData === null;
+  // Get error title based on error type
+  const getErrorTitle = () => {
+    if (!error) return 'Login Failed';
+    
+    switch (error.type) {
+      case 'not-found':
+        return 'Membership Not Found';
+      case 'expired':
+        return 'Membership Expired';
+      case 'inactive':
+        return 'Membership Inactive';
+      case 'network':
+        return 'Connection Error';
+      case 'unauthorized':
+        return 'Authentication Failed';
+      default:
+        return 'Login Failed';
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/10">
@@ -101,7 +132,7 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
               </p>
             </div>
             <p className="text-xl text-muted-foreground max-w-md mx-auto lg:mx-0">
-              Access your personalized fitness dashboard. View your diet plans, workout routines, and track your progress.
+              Access your personalized fitness dashboard. Track your progress, view your diet and workout plans.
             </p>
             <div className="hidden lg:block">
               <img
@@ -122,6 +153,21 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {error && (
+                  <Alert variant="destructive">
+                    {getErrorIcon()}
+                    <AlertTitle>{getErrorTitle()}</AlertTitle>
+                    <AlertDescription className="mt-2">
+                      {error.message}
+                      {attemptCount > 0 && (
+                        <div className="mt-2 text-xs opacity-80">
+                          Attempt {attemptCount}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="membershipId">Membership ID</Label>
@@ -130,90 +176,55 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
                       placeholder="Enter your membership ID"
                       value={membershipId}
                       onChange={(e) => setMembershipId(e.target.value)}
-                      required
                       disabled={isLoading || isRetrying}
-                      className="h-12 text-base"
-                      autoComplete="off"
+                      required
+                      autoFocus
                     />
                   </div>
 
-                  {error && isBackendUnreachable && (
-                    <Alert variant="destructive">
-                      <WifiOff className="h-4 w-4" />
-                      <AlertTitle>Server Connection Failed</AlertTitle>
-                      <AlertDescription>
-                        Unable to reach the backend server. The server may be offline or experiencing issues. Please reload the page to try again.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {error && !isBackendUnreachable && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>{isServerError ? 'Connection Error' : 'Login Failed'}</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-3">
-                    {isBackendUnreachable ? (
-                      <Button
-                        type="button"
-                        onClick={handleReload}
-                        size="lg"
-                        className="w-full text-lg h-14"
-                      >
-                        <RefreshCw className="mr-2 h-5 w-5" />
-                        Reload
-                      </Button>
-                    ) : (
+                  <Button
+                    type="submit"
+                    disabled={isLoading || isRetrying || !membershipId.trim()}
+                    size="lg"
+                    className="w-full text-lg h-14"
+                  >
+                    {isLoading || isRetrying ? (
                       <>
-                        <Button
-                          type="submit"
-                          disabled={isLoading || isRetrying || !membershipId.trim()}
-                          size="lg"
-                          className="w-full text-lg h-14"
-                        >
-                          {isLoading || isRetrying ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              {isRetrying ? 'Retrying...' : 'Verifying membership...'}
-                            </>
-                          ) : (
-                            'Login'
-                          )}
-                        </Button>
-
-                        {error && membershipId.trim() && !isBackendUnreachable && (
-                          <Button
-                            type="button"
-                            onClick={handleRetry}
-                            variant="outline"
-                            size="lg"
-                            className="w-full text-lg h-14"
-                            disabled={isRetrying || isLoading}
-                          >
-                            <RefreshCw className={`mr-2 h-5 w-5 ${isRetrying ? 'animate-spin' : ''}`} />
-                            Retry Login
-                          </Button>
-                        )}
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        {isRetrying ? 'Retrying...' : 'Logging in...'}
                       </>
+                    ) : (
+                      'Login'
                     )}
-                  </div>
+                  </Button>
+
+                  {error && (
+                    <Button
+                      type="button"
+                      onClick={handleRetry}
+                      variant="outline"
+                      size="lg"
+                      className="w-full text-lg h-14"
+                      disabled={isRetrying}
+                    >
+                      <RefreshCw className={`mr-2 h-5 w-5 ${isRetrying ? 'animate-spin' : ''}`} />
+                      Retry Login
+                    </Button>
+                  )}
                 </form>
 
                 <div className="space-y-3 pt-4 border-t">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>View your personalized diet plan</span>
+                    <span>View your diet and workout plans</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>Access your workout routines</span>
+                    <span>Track your attendance</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>Track your attendance history</span>
+                    <span>Access workout videos</span>
                   </div>
                 </div>
               </CardContent>
@@ -225,7 +236,7 @@ function MemberLoginContent({ onBack }: MemberLoginPageProps) {
       {/* Footer */}
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
         <p>
-          © {new Date().getFullYear()}. Built with ❤️ using{' '}
+          © {new Date().getFullYear()} RawFit Gym. Built with ❤️ using{' '}
           <a
             href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
             target="_blank"

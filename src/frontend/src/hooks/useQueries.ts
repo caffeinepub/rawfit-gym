@@ -14,6 +14,7 @@ import type {
   AttendanceMethod,
   PauseRequest,
   PauseRequestStatus,
+  MembershipStatus,
 } from '../backend';
 import { toast } from 'sonner';
 import { useInternetIdentity } from './useInternetIdentity';
@@ -100,6 +101,70 @@ export function useSaveCallerUserProfile() {
   });
 }
 
+// Member Login Mutation Hook
+export function useMemberLoginMutation() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (membershipId: string) => {
+      if (!actor) {
+        throw new Error('Backend actor not available');
+      }
+
+      const startTime = Date.now();
+      console.log('[useMemberLoginMutation] Starting memberLogin request', {
+        membershipId,
+        timestamp: new Date().toISOString(),
+      });
+
+      try {
+        const result = await actor.memberLogin(membershipId);
+        const duration = Date.now() - startTime;
+
+        console.log('[useMemberLoginMutation] memberLogin response received', {
+          membershipId,
+          duration: `${duration}ms`,
+          result,
+          timestamp: new Date().toISOString(),
+        });
+
+        return result;
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        
+        console.error('[useMemberLoginMutation] memberLogin error', {
+          membershipId,
+          duration: `${duration}ms`,
+          errorMessage: error?.message,
+          errorStack: error?.stack,
+          errorObject: error,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Parse error type from message
+        const errorMessage = error?.message || String(error);
+        let errorType = 'unknown';
+        
+        if (errorMessage.includes('Member not found')) {
+          errorType = 'not-found';
+        } else if (errorMessage.includes('Membership is not valid')) {
+          errorType = 'expired';
+        } else if (errorMessage.includes('Unauthorized')) {
+          errorType = 'unauthorized';
+        } else if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+          errorType = 'network';
+        }
+
+        throw {
+          type: errorType,
+          message: errorMessage,
+          originalError: error,
+        };
+      }
+    },
+  });
+}
+
 // Member Queries
 export function useGetAllMembers() {
   const { actor, isFetching } = useActor();
@@ -111,6 +176,8 @@ export function useGetAllMembers() {
       return actor.getAllMembers();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    gcTime: 0, // Don't cache to prevent stale data issues
   });
 }
 
@@ -131,7 +198,9 @@ export function useGetMemberProfile(memberId: string | null | undefined) {
     },
     enabled: !!actor && !isFetching && !!normalizedMemberId,
     staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache
+    gcTime: 0, // Don't cache to prevent stale membership status
+    retry: 1, // Retry once on failure
+    retryDelay: 500,
   });
 }
 
@@ -145,6 +214,8 @@ export function useCreateMember() {
       return actor.createMember(profile);
     },
     onSuccess: () => {
+      // Remove cached queries to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['members'] });
       queryClient.invalidateQueries({ queryKey: ['members'] });
       toast.success('Member created successfully');
     },
@@ -164,12 +235,16 @@ export function useUpdateMember() {
       return actor.updateMember(profile);
     },
     onSuccess: async (_, variables) => {
-      // Invalidate all member-related queries to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: ['members'] });
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile', variables.id] });
-      await queryClient.invalidateQueries({ queryKey: ['validateMemberLogin', variables.id] });
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus', variables.id] });
+      // CRITICAL: Remove all cached member-related queries to ensure fresh data
+      // This is essential for membership status changes (pause/resume/reactivate)
+      queryClient.removeQueries({ queryKey: ['members'] });
+      queryClient.removeQueries({ queryKey: ['memberProfile', variables.id] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus', variables.id] });
+      
+      // Then invalidate to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['memberProfile', variables.id] });
+      
       toast.success('Member updated successfully');
     },
     onError: (error: Error) => {
@@ -194,20 +269,19 @@ export function useGetAllDietCharts() {
 
 export function useGetAssignedDiet(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<DietChart | null>({
-    queryKey: ['assignedDiet', normalizedMemberId],
+    queryKey: ['assignedDiet', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return null;
+      if (!actor || !memberId) return null;
       try {
-        return await actor.getAssignedDiet(normalizedMemberId);
+        return await actor.getAssignedDiet(memberId);
       } catch (error) {
         console.error('Error fetching assigned diet:', error);
         return null;
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
   });
 }
 
@@ -265,20 +339,19 @@ export function useGetAllWorkoutCharts() {
 
 export function useGetAssignedWorkout(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<WorkoutChart | null>({
-    queryKey: ['assignedWorkout', normalizedMemberId],
+    queryKey: ['assignedWorkout', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return null;
+      if (!actor || !memberId) return null;
       try {
-        return await actor.getAssignedWorkout(normalizedMemberId);
+        return await actor.getAssignedWorkout(memberId);
       } catch (error) {
         console.error('Error fetching assigned workout:', error);
         return null;
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
   });
 }
 
@@ -325,7 +398,7 @@ export function useGetAllMembershipPackages() {
   const { actor, isFetching } = useActor();
 
   return useQuery<MembershipPackage[]>({
-    queryKey: ['packages'],
+    queryKey: ['membershipPackages'],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getAllMembershipPackages();
@@ -344,7 +417,7 @@ export function useCreateMembershipPackage() {
       return actor.createMembershipPackage(pkg);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packages'] });
+      queryClient.invalidateQueries({ queryKey: ['membershipPackages'] });
       toast.success('Package created successfully');
     },
     onError: (error: Error) => {
@@ -363,7 +436,7 @@ export function useUpdateMembershipPackage() {
       return actor.updateMembershipPackage(pkg);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packages'] });
+      queryClient.invalidateQueries({ queryKey: ['membershipPackages'] });
       toast.success('Package updated successfully');
     },
     onError: (error: Error) => {
@@ -382,7 +455,7 @@ export function useDeleteMembershipPackage() {
       return actor.deleteMembershipPackage(packageId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packages'] });
+      queryClient.invalidateQueries({ queryKey: ['membershipPackages'] });
       toast.success('Package deleted successfully');
     },
     onError: (error: Error) => {
@@ -394,47 +467,39 @@ export function useDeleteMembershipPackage() {
 // Attendance Queries
 export function useGetAttendanceHistory(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<AttendanceRecord[]>({
-    queryKey: ['attendanceHistory', normalizedMemberId],
+    queryKey: ['attendanceHistory', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return [];
+      if (!actor || !memberId) return [];
       try {
-        return await actor.getAttendanceHistory(normalizedMemberId);
+        return await actor.getAttendanceHistory(memberId);
       } catch (error) {
         console.error('Error fetching attendance history:', error);
         return [];
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
   });
 }
 
 export function useGetCurrentCheckInStatus(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
-  return useQuery<{ isCheckedIn: boolean; checkInTime: bigint | null; method: AttendanceMethod | null } | null>({
-    queryKey: ['checkInStatus', normalizedMemberId],
+  return useQuery<{ isCheckedIn: boolean; checkInTime?: bigint; method?: AttendanceMethod } | null>({
+    queryKey: ['checkInStatus', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return null;
+      if (!actor || !memberId) return null;
       try {
-        const result = await actor.getCurrentCheckInStatus(normalizedMemberId);
-        if (!result) return null;
-        // Convert optional fields to null for consistency
-        return {
-          isCheckedIn: result.isCheckedIn,
-          checkInTime: result.checkInTime ?? null,
-          method: result.method ?? null,
-        };
+        return await actor.getCurrentCheckInStatus(memberId);
       } catch (error) {
         console.error('Error fetching check-in status:', error);
         return null;
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!actor && !isFetching && !!memberId,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   });
 }
 
@@ -468,10 +533,15 @@ export function useRecordQRAttendance() {
       return actor.recordQRAttendance(memberId, isCheckIn);
     },
     onSuccess: (_, variables) => {
+      // Remove cached queries to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['attendanceHistory', variables.memberId] });
+      queryClient.removeQueries({ queryKey: ['checkInStatus', variables.memberId] });
+      
+      // Then invalidate to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['attendanceHistory', variables.memberId] });
       queryClient.invalidateQueries({ queryKey: ['checkInStatus', variables.memberId] });
-      const action = variables.isCheckIn ? 'Check-in' : 'Check-out';
-      toast.success(`${action} recorded successfully`);
+      
+      toast.success(variables.isCheckIn ? 'Checked in successfully' : 'Checked out successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to record attendance: ${error.message}`);
@@ -482,20 +552,19 @@ export function useRecordQRAttendance() {
 // Video Library Queries
 export function useGetVideoLibrary(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<VideoMetadata[]>({
-    queryKey: ['videoLibrary', normalizedMemberId],
+    queryKey: ['videoLibrary', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return [];
+      if (!actor || !memberId) return [];
       try {
-        return await actor.getVideoLibrary(normalizedMemberId);
+        return await actor.getVideoLibrary(memberId);
       } catch (error) {
         console.error('Error fetching video library:', error);
         return [];
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
   });
 }
 
@@ -506,15 +575,10 @@ export function useGetAllVideos() {
     queryKey: ['allVideos'],
     queryFn: async () => {
       if (!actor) return [];
-      try {
-        const members = await actor.getAllMembers();
-        if (members.length === 0) return [];
-        const videos = await actor.getVideoLibrary(members[0].id);
-        return videos;
-      } catch (error) {
-        console.error('Error fetching all videos:', error);
-        return [];
-      }
+      // For admin, we need to get all videos
+      // Since there's no getAllVideos method, we'll return empty array
+      // This should be handled by the admin interface differently
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -594,54 +658,43 @@ export function useUpdateGymLocation() {
 }
 
 // Pause Request Queries
-export function useGetAllPauseRequests() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<PauseRequest[]>({
-    queryKey: ['pauseRequests'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllPauseRequests();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
 export function useGetPauseRequestStatus(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<{ requestId: string; status: PauseRequestStatus; adminMessage?: string } | null>({
-    queryKey: ['pauseRequestStatus', normalizedMemberId],
+    queryKey: ['pauseRequestStatus', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return null;
+      if (!actor || !memberId) return null;
       try {
-        return await actor.getPauseRequestStatus(normalizedMemberId);
+        return await actor.getPauseRequestStatus(memberId);
       } catch (error) {
         console.error('Error fetching pause request status:', error);
         return null;
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   });
 }
 
 export function useHasPendingPauseRequest(memberId: string | null | undefined) {
   const { actor, isFetching } = useActor();
-  const normalizedMemberId = memberId || null;
 
   return useQuery<boolean>({
-    queryKey: ['hasPendingPauseRequest', normalizedMemberId],
+    queryKey: ['hasPendingPauseRequest', memberId],
     queryFn: async () => {
-      if (!actor || !normalizedMemberId) return false;
+      if (!actor || !memberId) return false;
       try {
-        return await actor.hasPendingPauseRequest(normalizedMemberId);
+        return await actor.hasPendingPauseRequest(memberId);
       } catch (error) {
         console.error('Error checking pending pause request:', error);
         return false;
       }
     },
-    enabled: !!actor && !isFetching && !!normalizedMemberId,
+    enabled: !!actor && !isFetching && !!memberId,
+    staleTime: 0,
+    gcTime: 0,
   });
 }
 
@@ -655,55 +708,22 @@ export function useInitiatePauseRequest() {
       return actor.initiatePauseRequest(memberId);
     },
     onSuccess: (_, memberId) => {
-      queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
+      // Remove cached queries to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus', memberId] });
+      queryClient.removeQueries({ queryKey: ['hasPendingPauseRequest', memberId] });
+      queryClient.removeQueries({ queryKey: ['memberProfile', memberId] });
+      queryClient.removeQueries({ queryKey: ['pauseRequests'] });
+      
+      // Then invalidate to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus', memberId] });
       queryClient.invalidateQueries({ queryKey: ['hasPendingPauseRequest', memberId] });
+      queryClient.invalidateQueries({ queryKey: ['memberProfile', memberId] });
+      queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
+      
       toast.success('Pause request submitted successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to submit pause request: ${error.message}`);
-    },
-  });
-}
-
-export function useApprovePauseRequest() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ requestId, adminMessage }: { requestId: string; adminMessage?: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.approvePauseRequest(requestId, adminMessage || null);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
-      await queryClient.invalidateQueries({ queryKey: ['members'] });
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus'] });
-      toast.success('Pause request approved');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to approve pause request: ${error.message}`);
-    },
-  });
-}
-
-export function useDenyPauseRequest() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ requestId, adminMessage }: { requestId: string; adminMessage?: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.denyPauseRequest(requestId, adminMessage || null);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus'] });
-      toast.success('Pause request denied');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to deny pause request: ${error.message}`);
     },
   });
 }
@@ -717,14 +737,90 @@ export function useResumeMembership() {
       if (!actor) throw new Error('Actor not available');
       return actor.resumeMembership(memberId);
     },
-    onSuccess: async (_, memberId) => {
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile', memberId] });
-      await queryClient.invalidateQueries({ queryKey: ['members'] });
-      await queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus', memberId] });
+    onSuccess: (_, memberId) => {
+      // Remove cached queries to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['memberProfile', memberId] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus', memberId] });
+      queryClient.removeQueries({ queryKey: ['members'] });
+      
+      // Then invalidate to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['memberProfile', memberId] });
+      queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus', memberId] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      
       toast.success('Membership resumed successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to resume membership: ${error.message}`);
+    },
+  });
+}
+
+export function useGetAllPauseRequests() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PauseRequest[]>({
+    queryKey: ['pauseRequests'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllPauseRequests();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+export function useApprovePauseRequest() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ requestId, adminMessage }: { requestId: string; adminMessage: string | null }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.approvePauseRequest(requestId, adminMessage);
+    },
+    onSuccess: () => {
+      // Remove all pause-related cached queries
+      queryClient.removeQueries({ queryKey: ['pauseRequests'] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus'] });
+      queryClient.removeQueries({ queryKey: ['members'] });
+      
+      // Then invalidate to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      
+      toast.success('Pause request approved');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to approve pause request: ${error.message}`);
+    },
+  });
+}
+
+export function useDenyPauseRequest() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ requestId, adminMessage }: { requestId: string; adminMessage: string | null }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.denyPauseRequest(requestId, adminMessage);
+    },
+    onSuccess: () => {
+      // Remove all pause-related cached queries
+      queryClient.removeQueries({ queryKey: ['pauseRequests'] });
+      queryClient.removeQueries({ queryKey: ['pauseRequestStatus'] });
+      
+      // Then invalidate to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['pauseRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['pauseRequestStatus'] });
+      
+      toast.success('Pause request denied');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to deny pause request: ${error.message}`);
     },
   });
 }

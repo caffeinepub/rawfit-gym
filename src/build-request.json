@@ -1,69 +1,68 @@
 {
   "kind": "build_request",
-  "title": "Fix member login after membership reactivation",
+  "title": "Fix member login failure",
+  "projectName": "RawFit Gym",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the backend member login validation logic to correctly recognize members whose membership status has been changed from paused back to active by an admin",
-      "target": "backend",
+      "text": "Investigate and fix the member login authentication flow that is currently showing 'failed' errors when members attempt to log in with their membership ID",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-7"
+          "msg-4"
         ],
         "quotes": [
-          "Member is not able to login after admin marked the membership status as active again after is was paused"
+          "MEMBER LOGIN IS showing failed."
         ]
       },
       "acceptanceCriteria": [
-        "A member whose status was changed from paused to active can successfully log in using their membership ID",
-        "The login validation checks the current membership status and does not fail based on historical pause state",
-        "Members with active status can authenticate regardless of previous pause history"
+        "Members can successfully log in using their membership ID",
+        "Login errors display specific, actionable error messages instead of generic 'failed' status",
+        "The useMemberAuth hook properly validates membership IDs against the backend",
+        "The MemberLoginPage component handles authentication errors gracefully with clear user feedback"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
-      "target": "frontend",
+      "text": "Add error logging and diagnostics to the member authentication flow to capture why login attempts are failing, including backend validation responses and network errors",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-7"
-        ],
-        "quotes": [
-          "When member tries to login , it shows login failed. Contact gym if your membership should be active"
+          "msg-4"
         ]
       },
       "acceptanceCriteria": [
-        "The frontend clears any cached authentication state when a member attempts to log in",
-        "Login errors for reactivated members are resolved and do not show the 'contact gym' message inappropriately",
-        "The authentication hook fetches fresh membership status on each login attempt"
+        "Console logs show detailed error information when member login fails",
+        "Backend validateMemberLogin function returns specific error codes for different failure scenarios (invalid ID, expired membership, etc.)",
+        "Frontend displays user-friendly error messages based on specific failure reasons"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
-      "target": "frontend",
+      "text": "Verify that the backend's validateMemberLogin method correctly queries member records and returns appropriate success/failure responses with proper error handling",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-7"
+          "msg-4"
         ]
       },
       "acceptanceCriteria": [
-        "When admin changes a member status from paused to active, the change is immediately reflected in the backend",
-        "Query invalidation ensures the updated status is visible across all admin views",
-        "No stale cached data prevents the status change from taking effect"
+        "validateMemberLogin method properly searches for members by membership ID",
+        "The method handles edge cases like non-existent IDs, expired memberships, and inactive members",
+        "Appropriate Result types are returned with clear error messages"
       ]
     }
   ],
   "constraints": [
-    "Do not modify the Internet Identity authentication mechanism",
-    "Preserve all existing membership status types and enum values",
-    "Maintain backward compatibility with existing member records"
+    "Do not modify the useMemberAuth hook's localStorage and cross-tab synchronization logic unless directly related to the login failure",
+    "Preserve the existing member authentication flow architecture",
+    "Maintain backward compatibility with existing member IDs in the system"
   ],
   "nonGoals": [
-    "Changing the UI design of the login pages",
-    "Adding new membership status types",
-    "Modifying the admin approval workflow for pause requests"
+    "Redesigning the member login UI",
+    "Adding new authentication methods beyond membership ID",
+    "Modifying admin login or Internet Identity integration"
   ],
   "imageRequirements": {
     "required": [],

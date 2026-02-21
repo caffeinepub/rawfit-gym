@@ -206,6 +206,17 @@ export const idlService = IDL.Service({
       [IDL.Opt(MemberProfile)],
       ['query'],
     ),
+  'getMemberByMembershipId' : IDL.Func(
+      [IDL.Text],
+      [
+        IDL.Record({
+          'member' : IDL.Opt(MemberProfile),
+          'status' : MembershipStatus,
+          'isValid' : IDL.Bool,
+        }),
+      ],
+      ['query'],
+    ),
   'getMemberProfile' : IDL.Func([IDL.Text], [MemberProfile], ['query']),
   'getPauseRequestStatus' : IDL.Func(
       [IDL.Text],
@@ -240,6 +251,17 @@ export const idlService = IDL.Service({
     ),
   'initiatePauseRequest' : IDL.Func([IDL.Text], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'memberLogin' : IDL.Func(
+      [IDL.Text],
+      [
+        IDL.Record({
+          'status' : MembershipStatus,
+          'name' : IDL.Text,
+          'isValid' : IDL.Bool,
+        }),
+      ],
+      ['query'],
+    ),
   'processAutoCheckout' : IDL.Func([IDL.Text], [], []),
   'recordAttendance' : IDL.Func([AttendanceRecord], [], []),
   'recordQRAttendance' : IDL.Func([IDL.Text, IDL.Bool], [], []),
@@ -458,6 +480,17 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(MemberProfile)],
         ['query'],
       ),
+    'getMemberByMembershipId' : IDL.Func(
+        [IDL.Text],
+        [
+          IDL.Record({
+            'member' : IDL.Opt(MemberProfile),
+            'status' : MembershipStatus,
+            'isValid' : IDL.Bool,
+          }),
+        ],
+        ['query'],
+      ),
     'getMemberProfile' : IDL.Func([IDL.Text], [MemberProfile], ['query']),
     'getPauseRequestStatus' : IDL.Func(
         [IDL.Text],
@@ -496,6 +529,17 @@ export const idlFactory = ({ IDL }) => {
       ),
     'initiatePauseRequest' : IDL.Func([IDL.Text], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'memberLogin' : IDL.Func(
+        [IDL.Text],
+        [
+          IDL.Record({
+            'status' : MembershipStatus,
+            'name' : IDL.Text,
+            'isValid' : IDL.Bool,
+          }),
+        ],
+        ['query'],
+      ),
     'processAutoCheckout' : IDL.Func([IDL.Text], [], []),
     'recordAttendance' : IDL.Func([AttendanceRecord], [], []),
     'recordQRAttendance' : IDL.Func([IDL.Text, IDL.Bool], [], []),

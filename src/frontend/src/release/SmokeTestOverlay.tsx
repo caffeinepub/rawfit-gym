@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Activity, User, Shield, X } from 'lucide-react';
-import { SMOKE_TEST_CHECKLIST, getSmokeTestsByCategory } from './smokeTestChecklist';
-import { getVersionStatus } from './expectedProductionVersion';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { CheckCircle2, Circle, AlertCircle, X, Rocket } from 'lucide-react';
+import { smokeTestChecklist, getCategoryProgress, getOverallProgress, type SmokeTestItem } from './smokeTestChecklist';
+import { isVersionMatch } from './expectedProductionVersion';
 
 interface SmokeTestOverlayProps {
   open: boolean;
@@ -21,43 +21,52 @@ interface SmokeTestOverlayProps {
 }
 
 export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlayProps) {
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState<SmokeTestItem[]>(smokeTestChecklist);
 
-  const toggleItem = (id: string) => {
-    setCheckedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  // Auto-check health items based on healthData
+  useEffect(() => {
+    if (healthData) {
+      setItems(prevItems =>
+        prevItems.map(item => {
+          if (item.id === 'health-backend' && healthData.ok) {
+            return { ...item, checked: true };
+          }
+          if (item.id === 'health-version' && isVersionMatch(healthData.version)) {
+            return { ...item, checked: true };
+          }
+          return item;
+        })
+      );
+    }
+  }, [healthData]);
+
+  const handleToggle = (id: string) => {
+    setItems(prevItems =>
+      prevItems.map(item =>
+        item.id === id ? { ...item, checked: !item.checked } : item
+      )
+    );
   };
 
-  const healthTests = getSmokeTestsByCategory('health');
-  const adminTests = getSmokeTestsByCategory('admin');
-  const memberTests = getSmokeTestsByCategory('member');
+  const healthProgress = getCategoryProgress('health', items);
+  const adminProgress = getCategoryProgress('admin', items);
+  const memberProgress = getCategoryProgress('member', items);
+  const overallProgress = getOverallProgress(items);
 
-  const healthChecked = healthTests.filter((t) => checkedItems.has(t.id)).length;
-  const adminChecked = adminTests.filter((t) => checkedItems.has(t.id)).length;
-  const memberChecked = memberTests.filter((t) => checkedItems.has(t.id)).length;
-
-  const totalTests = SMOKE_TEST_CHECKLIST.length;
-  const totalChecked = checkedItems.size;
-  const progressPercent = Math.round((totalChecked / totalTests) * 100);
-
-  const versionStatus = getVersionStatus(healthData?.version);
+  const isComplete = overallProgress.completed === overallProgress.total;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl">Production Smoke Test - Version 37</DialogTitle>
+              <DialogTitle className="text-2xl flex items-center gap-2">
+                <Rocket className="h-6 w-6 text-primary" />
+                Production Smoke Test - Version 45
+              </DialogTitle>
               <DialogDescription>
-                Verify release-critical flows after publishing to production
+                Verify all critical functionality on mainnet before marking deployment as complete
               </DialogDescription>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
@@ -67,191 +76,171 @@ export function SmokeTestOverlay({ open, onClose, healthData }: SmokeTestOverlay
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Progress Summary */}
-          <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Overall Progress</span>
-                <span className="text-sm text-muted-foreground">
-                  {totalChecked} / {totalTests} tests
-                </span>
-              </div>
-              <div className="w-full bg-background rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+          {/* Overall Progress */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                Overall Progress: {overallProgress.completed} / {overallProgress.total}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {overallProgress.percentage}%
+              </span>
             </div>
-            {progressPercent === 100 ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="h-6 w-6" />
-                <span className="text-lg font-bold">Complete ✓</span>
+            <Progress value={overallProgress.percentage} className="h-2" />
+            {isComplete && (
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">All tests completed! Production deployment verified ✓</span>
               </div>
-            ) : (
-              <div className="text-3xl font-bold text-primary">{progressPercent}%</div>
             )}
           </div>
 
-          {/* Backend Health Status */}
-          {healthData ? (
-            <Alert variant={versionStatus.isMatch ? 'default' : 'destructive'}>
-              {versionStatus.isMatch ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-              <AlertTitle>Backend Health Check</AlertTitle>
-              <AlertDescription>
-                <div className="space-y-1">
-                  <div>Status: {healthData.ok ? '✓ OK' : '✗ Failed'}</div>
-                  <div>Backend Version: {healthData.version}</div>
-                  {versionStatus.isMatch ? (
-                    <div className="text-green-600 font-medium">✓ Version matches expected (v1.2.1)</div>
+          <Separator />
+
+          {/* Scrollable Checklist */}
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-6">
+              {/* Health Checks */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Circle className="h-5 w-5 text-blue-500" />
+                    Health Checks
+                  </h3>
+                  <Badge variant={healthProgress.percentage === 100 ? 'default' : 'secondary'}>
+                    {healthProgress.completed} / {healthProgress.total}
+                  </Badge>
+                </div>
+                <div className="space-y-2 pl-7">
+                  {items
+                    .filter(item => item.category === 'health')
+                    .map(item => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={item.id}
+                          checked={item.checked}
+                          onCheckedChange={() => handleToggle(item.id)}
+                        />
+                        <label
+                          htmlFor={item.id}
+                          className={`text-sm cursor-pointer flex-1 ${
+                            item.checked ? 'line-through text-muted-foreground' : ''
+                          }`}
+                        >
+                          {item.description}
+                        </label>
+                        {item.checked && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Admin Flow */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Circle className="h-5 w-5 text-purple-500" />
+                    Admin Flow
+                  </h3>
+                  <Badge variant={adminProgress.percentage === 100 ? 'default' : 'secondary'}>
+                    {adminProgress.completed} / {adminProgress.total}
+                  </Badge>
+                </div>
+                <div className="space-y-2 pl-7">
+                  {items
+                    .filter(item => item.category === 'admin')
+                    .map(item => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={item.id}
+                          checked={item.checked}
+                          onCheckedChange={() => handleToggle(item.id)}
+                        />
+                        <label
+                          htmlFor={item.id}
+                          className={`text-sm cursor-pointer flex-1 ${
+                            item.checked ? 'line-through text-muted-foreground' : ''
+                          }`}
+                        >
+                          {item.description}
+                        </label>
+                        {item.checked && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Member Flow */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Circle className="h-5 w-5 text-green-500" />
+                    Member Flow
+                  </h3>
+                  <Badge variant={memberProgress.percentage === 100 ? 'default' : 'secondary'}>
+                    {memberProgress.completed} / {memberProgress.total}
+                  </Badge>
+                </div>
+                <div className="space-y-2 pl-7">
+                  {items
+                    .filter(item => item.category === 'member')
+                    .map(item => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={item.id}
+                          checked={item.checked}
+                          onCheckedChange={() => handleToggle(item.id)}
+                        />
+                        <label
+                          htmlFor={item.id}
+                          className={`text-sm cursor-pointer flex-1 ${
+                            item.checked ? 'line-through text-muted-foreground' : ''
+                          }`}
+                        >
+                          {item.description}
+                        </label>
+                        {item.checked && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <Separator />
+
+          {/* Backend Status */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Backend Status (Mainnet)</h4>
+            {healthData ? (
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  {healthData.ok ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
                   ) : (
-                    <div className="text-orange-600 font-medium">⚠ {versionStatus.message}</div>
+                    <AlertCircle className="h-4 w-4 text-red-600" />
                   )}
-                  <div className="text-xs text-muted-foreground">
-                    Timestamp: {new Date(Number(healthData.timestamp) / 1_000_000).toLocaleString()}
-                  </div>
+                  <span>Health: {healthData.ok ? 'OK' : 'Error'}</span>
                 </div>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Backend Unreachable</AlertTitle>
-              <AlertDescription>
-                Unable to connect to backend. Verify deployment and network connectivity.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Test Categories */}
-          <Tabs defaultValue="health" className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="health" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Health
-                <Badge variant="secondary" className="ml-1">
-                  {healthChecked}/{healthTests.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Admin
-                <Badge variant="secondary" className="ml-1">
-                  {adminChecked}/{adminTests.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="member" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Member
-                <Badge variant="secondary" className="ml-1">
-                  {memberChecked}/{memberTests.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="health" className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-3">
-                  {healthTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={test.id}
-                        checked={checkedItems.has(test.id)}
-                        onCheckedChange={() => toggleItem(test.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <label
-                          htmlFor={test.id}
-                          className="text-sm font-medium leading-none cursor-pointer"
-                        >
-                          {test.description}
-                        </label>
-                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  {isVersionMatch(healthData.version) ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  )}
+                  <span>Version: {healthData.version}</span>
                 </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="admin" className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-3">
-                  {adminTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={test.id}
-                        checked={checkedItems.has(test.id)}
-                        onCheckedChange={() => toggleItem(test.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <label
-                          htmlFor={test.id}
-                          className="text-sm font-medium leading-none cursor-pointer"
-                        >
-                          {test.description}
-                        </label>
-                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="member" className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-3">
-                  {memberTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={test.id}
-                        checked={checkedItems.has(test.id)}
-                        onCheckedChange={() => toggleItem(test.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <label
-                          htmlFor={test.id}
-                          className="text-sm font-medium leading-none cursor-pointer"
-                        >
-                          {test.description}
-                        </label>
-                        <p className="text-sm text-muted-foreground">{test.instructions}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          {progressPercent === 100 && (
-            <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              All Tests Complete
-            </Button>
-          )}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Backend status unavailable
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

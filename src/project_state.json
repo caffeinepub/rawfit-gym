@@ -4,38 +4,38 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "Members cannot login after admin reactivates paused membership - login fails with 'contact gym' message"
+    "Member login showing failed error"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-member-authentication-flow-in-usememberauth-ts-properly-handles-reactivated-memberships-and-does-not-cache-stale-pause-status",
-      "title": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
+      "id": "feature-investigate-and-fix-the-member-login-authentication-flow-that-is-currently-showing-failed-errors-when-members-attempt-to-log-in-with-their-membership-id",
+      "title": "Investigate and fix the member login authentication flow that is currently showing 'failed' errors when members attempt to log in with their membership ID",
       "reqIds": [
-        "REQ-2"
+        "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-verify-that-the-membership-status-update-flow-in-the-admin-memberstab-correctly-persists-status-changes-and-invalidates-relevant-queries",
-      "title": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
+      "id": "feature-add-error-logging-and-diagnostics-to-the-member-authentication-flow-to-capture-why-login-attempts-are-failing-including-backend-validation-responses-and-network-errors",
+      "title": "Add error logging and diagnostics to the member authentication flow to capture why login attempts are failing, including backend validation responses and network errors",
       "reqIds": [
-        "REQ-3"
+        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
-      "id": "AR-1",
-      "summary": "Fix the backend member login validation logic to correctly recognize members whose membership status has been changed from paused back to active by an admin",
+      "id": "AR-3",
+      "summary": "Verify that the backend's validateMemberLogin method correctly queries member records and returns appropriate success/failure responses with proper error handling",
       "reqIds": [
-        "REQ-1"
+        "REQ-3"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix member login after membership reactivation",
+  "projectName": "RawFit Gym",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

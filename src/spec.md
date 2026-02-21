@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix member login functionality for memberships that have been reactivated from paused status by an admin.
+**Goal:** Fix the member login authentication flow that is currently showing 'failed' errors when members attempt to log in with their membership ID.
 
 **Planned changes:**
-- Update backend login validation to correctly recognize members with active status regardless of previous pause history
-- Ensure frontend authentication clears cached state and fetches fresh membership status on each login attempt
-- Verify admin membership status update flow properly persists changes and invalidates queries
+- Investigate and fix the member login authentication flow in both frontend and backend
+- Add detailed error logging and diagnostics to capture why login attempts are failing
+- Verify that the backend's validateMemberLogin method correctly queries member records and returns appropriate error responses
+- Ensure the useMemberAuth hook properly validates membership IDs against the backend
+- Update error messages to be specific and actionable instead of generic 'failed' status
 
-**User-visible outcome:** Members whose memberships have been reactivated by an admin can successfully log in without encountering "contact gym" errors.
+**User-visible outcome:** Members can successfully log in using their membership ID with clear, actionable error messages if login fails for specific reasons (invalid ID, expired membership, etc.).

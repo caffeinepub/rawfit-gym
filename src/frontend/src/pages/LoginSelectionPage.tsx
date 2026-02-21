@@ -122,9 +122,9 @@ function LoginSelectionContent() {
       {/* Footer */}
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
         <p>
-          © 2025. Built with ❤️ using{' '}
+          © {new Date().getFullYear()} RawFit Gym. Built with ❤️ using{' '}
           <a
-            href="https://caffeine.ai"
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline font-medium"

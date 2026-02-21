@@ -165,6 +165,11 @@ export interface backendInterface {
         location: LocationCoordinates;
     }>;
     getMemberByContactInfo(contactInfo: string): Promise<MemberProfile | null>;
+    getMemberByMembershipId(memberId: string): Promise<{
+        member?: MemberProfile;
+        status: MembershipStatus;
+        isValid: boolean;
+    }>;
     getMemberProfile(memberId: string): Promise<MemberProfile>;
     getPauseRequestStatus(memberId: string): Promise<{
         status: PauseRequestStatus;
@@ -181,6 +186,11 @@ export interface backendInterface {
     }>;
     initiatePauseRequest(memberId: string): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
+    memberLogin(membershipId: string): Promise<{
+        status: MembershipStatus;
+        name: string;
+        isValid: boolean;
+    }>;
     processAutoCheckout(memberId: string): Promise<void>;
     recordAttendance(record: AttendanceRecord): Promise<void>;
     recordQRAttendance(memberId: string, isCheckIn: boolean): Promise<void>;

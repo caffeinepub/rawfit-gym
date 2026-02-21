@@ -49,27 +49,10 @@ function AppContent() {
     }
   }, []);
 
-  // Log authentication state for debugging
-  useEffect(() => {
-    console.log('App - Authentication state:', {
-      isAdminAuthenticated,
-      isMemberAuthenticated,
-      isAuthenticated,
-      isInitializing,
-      memberAuthLoading,
-      profileLoading,
-      roleLoading,
-      userRole,
-      loginError: loginError?.message,
-      healthData: healthData ? { version: healthData.version, ok: healthData.ok } : null,
-    });
-  }, [isAdminAuthenticated, isMemberAuthenticated, isAuthenticated, isInitializing, memberAuthLoading, profileLoading, roleLoading, userRole, loginError, healthData]);
-
   // Detect prolonged loading after admin authentication and trigger health check
   useEffect(() => {
     if (isAdminAuthenticated && (profileLoading || roleLoading)) {
       const timer = setTimeout(() => {
-        console.log('App - Prolonged loading detected, triggering health check');
         setShowHealthCheck(true);
         refetchHealth();
       }, 8000); // 8 seconds threshold
@@ -129,7 +112,6 @@ function AppContent() {
 
   // Show login error if Internet Identity initialization failed
   if (loginError && !isAuthenticated) {
-    console.error('App - Login error detected:', loginError);
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
         <div className="max-w-md w-full space-y-4">
@@ -174,7 +156,6 @@ function AppContent() {
 
   // Member-only authentication: bypass admin profile/role checks
   if (isMemberAuthenticated && !isAdminAuthenticated) {
-    console.log('App - Member-only session detected, rendering MemberDashboard');
     return (
       <>
         <MemberDashboard />

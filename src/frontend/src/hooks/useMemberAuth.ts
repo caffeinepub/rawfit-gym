@@ -1,75 +1,66 @@
 import { useState, useEffect } from 'react';
 import { useActor } from './useActor';
-import { useQueryClient } from '@tanstack/react-query';
+import { useSaveCallerUserProfile } from './useQueries';
+import { memberAuthLogger } from '../lib/memberAuthLogger';
 
 const MEMBER_AUTH_KEY = 'rawfit_member_auth';
-const MEMBER_AUTH_CHANGED_EVENT = 'member-auth-changed';
 
 interface MemberAuthState {
   memberId: string | null;
   isLoading: boolean;
 }
 
+// Custom event for cross-tab synchronization
+const MEMBER_AUTH_EVENT = 'member_auth_change';
+
 export function useMemberAuth() {
-  const [state, setState] = useState<MemberAuthState>({
-    memberId: null,
-    isLoading: true,
+  const [state, setState] = useState<MemberAuthState>(() => {
+    const stored = localStorage.getItem(MEMBER_AUTH_KEY);
+    return {
+      memberId: stored || null,
+      isLoading: false,
+    };
   });
 
+  // Sync state across tabs
   useEffect(() => {
-    // Check for stored member ID on mount
-    try {
-      const storedMemberId = localStorage.getItem(MEMBER_AUTH_KEY);
-      console.log('useMemberAuth - Loaded stored member ID:', storedMemberId);
-      setState({
-        memberId: storedMemberId,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('useMemberAuth - Error loading stored member ID:', error);
-      setState({
-        memberId: null,
-        isLoading: false,
-      });
-    }
-
-    // Listen for auth changes
-    const handleAuthChange = () => {
-      console.log('useMemberAuth - Auth change detected');
-      try {
-        const storedMemberId = localStorage.getItem(MEMBER_AUTH_KEY);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === MEMBER_AUTH_KEY) {
+        memberAuthLogger.crossTabSync(e.newValue);
         setState({
-          memberId: storedMemberId,
-          isLoading: false,
-        });
-      } catch (error) {
-        console.error('useMemberAuth - Error handling auth change:', error);
-        setState({
-          memberId: null,
+          memberId: e.newValue,
           isLoading: false,
         });
       }
     };
 
-    window.addEventListener(MEMBER_AUTH_CHANGED_EVENT, handleAuthChange);
-    window.addEventListener('storage', handleAuthChange);
+    const handleCustomEvent = (e: CustomEvent) => {
+      memberAuthLogger.crossTabSync(e.detail.memberId);
+      setState({
+        memberId: e.detail.memberId,
+        isLoading: false,
+      });
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(MEMBER_AUTH_EVENT, handleCustomEvent as EventListener);
 
     return () => {
-      window.removeEventListener(MEMBER_AUTH_CHANGED_EVENT, handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(MEMBER_AUTH_EVENT, handleCustomEvent as EventListener);
     };
   }, []);
 
   const logout = () => {
-    try {
-      console.log('useMemberAuth - Logging out member');
-      localStorage.removeItem(MEMBER_AUTH_KEY);
-      setState({ memberId: null, isLoading: false });
-      // Trigger auth change event
-      window.dispatchEvent(new Event(MEMBER_AUTH_CHANGED_EVENT));
-    } catch (error) {
-      console.error('useMemberAuth - Error during logout:', error);
-    }
+    memberAuthLogger.localStorageOperation('remove');
+    localStorage.removeItem(MEMBER_AUTH_KEY);
+    
+    // Dispatch custom event for cross-tab sync
+    window.dispatchEvent(
+      new CustomEvent(MEMBER_AUTH_EVENT, {
+        detail: { memberId: null },
+      })
+    );
   };
 
   return {
@@ -79,88 +70,162 @@ export function useMemberAuth() {
   };
 }
 
-export function useMemberLogin() {
-  const { actor, isFetching } = useActor();
-  const queryClient = useQueryClient();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface LoginError {
+  type: 'not-found' | 'expired' | 'inactive' | 'paused' | 'network' | 'unauthorized' | 'unknown';
+  message: string;
+  originalError?: any;
+}
 
-  const login = async (memberId: string) => {
+export function useMemberLogin() {
+  const { actor } = useActor();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<LoginError | null>(null);
+  const saveProfile = useSaveCallerUserProfile();
+
+  const parseBackendError = (err: any, memberId: string): LoginError => {
+    const errorMessage = err?.message || String(err);
+    
+    memberAuthLogger.validationError(memberId, err);
+
+    // Parse specific error messages from backend traps
+    if (errorMessage.includes('Member not found')) {
+      return {
+        type: 'not-found',
+        message: 'Membership ID not found. Please check your ID or contact the gym desk.',
+        originalError: err,
+      };
+    }
+
+    if (errorMessage.includes('Membership is not valid')) {
+      return {
+        type: 'expired',
+        message: 'Your membership has expired. Please contact the gym desk to renew.',
+        originalError: err,
+      };
+    }
+
+    if (errorMessage.includes('Unauthorized')) {
+      return {
+        type: 'unauthorized',
+        message: 'Authentication failed. Please try logging in again.',
+        originalError: err,
+      };
+    }
+
+    // Check for network/connection errors
+    if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+      return {
+        type: 'network',
+        message: 'Network error. Please check your connection and try again.',
+        originalError: err,
+      };
+    }
+
+    // Default unknown error
+    return {
+      type: 'unknown',
+      message: 'Login failed. Please try again or contact the gym desk for assistance.',
+      originalError: err,
+    };
+  };
+
+  const login = async (membershipId: string) => {
+    if (!actor) {
+      setError({
+        type: 'network',
+        message: 'Backend service not available. Please try again.',
+      });
+      return;
+    }
+
+    const attemptId = memberAuthLogger.loginAttempt(membershipId);
     setIsLoading(true);
     setError(null);
 
-    console.log('useMemberLogin - Starting login for member ID:', memberId);
-
     try {
-      // Check if actor is available
-      if (!actor) {
-        console.error('useMemberLogin - Actor not available');
-        throw new Error('Server unavailable. Please try again in a moment.');
+      memberAuthLogger.validationRequest(membershipId);
+      
+      // Call backend memberLogin method
+      const result = await actor.memberLogin(membershipId);
+      
+      memberAuthLogger.validationResponse(membershipId, result);
+
+      // Check if membership is valid
+      if (!result.isValid) {
+        const errorType: LoginError = {
+          type: 'expired',
+          message: 'Your membership has expired. Please contact the gym desk to renew.',
+        };
+        setError(errorType);
+        setIsLoading(false);
+        return;
       }
 
-      // Clear any cached member-related queries before validation
-      // This ensures we fetch fresh data from the backend
-      console.log('useMemberLogin - Clearing cached member queries');
-      await queryClient.invalidateQueries({ queryKey: ['memberProfile', memberId] });
-      await queryClient.invalidateQueries({ queryKey: ['members'] });
-      await queryClient.invalidateQueries({ queryKey: ['validateMemberLogin', memberId] });
-
-      // Use the public validateMemberLogin endpoint
-      let validationResult;
-      try {
-        console.log('useMemberLogin - Validating member login with fresh data...');
-        validationResult = await actor.validateMemberLogin(memberId);
-        console.log('useMemberLogin - Validation result:', validationResult);
-      } catch (err) {
-        console.error('useMemberLogin - Backend call error:', err);
-        
-        // Classify error: connectivity vs validation failure
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        
-        // Backend validation failures (legacy traps) contain these keywords
-        if (
-          errorMessage.includes('Unauthorized') ||
-          errorMessage.includes('Access denied') ||
-          errorMessage.includes('not found') ||
-          errorMessage.includes('not active') ||
-          errorMessage.includes('inactive')
-        ) {
-          // This is a validation failure, not a connectivity issue
-          console.warn('useMemberLogin - Validation failure detected in error:', errorMessage);
-          throw new Error('Invalid or inactive membership ID. Please check your ID and try again, or contact the gym if your membership should be active.');
-        }
-        
-        // True connectivity/agent errors
-        throw new Error('Server unavailable. Please check your connection and try again.');
+      // Check membership status
+      if (result.status === 'inactive') {
+        const errorType: LoginError = {
+          type: 'inactive',
+          message: 'Your membership is inactive. Please contact the gym desk to reactivate.',
+        };
+        setError(errorType);
+        setIsLoading(false);
+        return;
       }
 
-      // Backend returns only { isValid: boolean }
-      // isValid is true only if membership exists AND is currently active
-      if (!validationResult.isValid) {
-        console.warn('useMemberLogin - Invalid or inactive membership:', memberId);
-        throw new Error('Invalid or inactive membership ID. Please check your ID and try again, or contact the gym if your membership should be active.');
+      if (result.status === 'paused') {
+        // Paused memberships can still log in to view status and resume
+        memberAuthLogger.loginSuccess(membershipId, result.status);
       }
 
       // Store member ID in localStorage
-      console.log('useMemberLogin - Login successful, storing member ID');
-      localStorage.setItem(MEMBER_AUTH_KEY, memberId);
-      
-      // Trigger auth change event to update App without reload
-      console.log('useMemberLogin - Triggering auth change event');
-      window.dispatchEvent(new Event(MEMBER_AUTH_CHANGED_EVENT));
-      
+      memberAuthLogger.localStorageOperation('set', membershipId);
+      localStorage.setItem(MEMBER_AUTH_KEY, membershipId);
+
+      // Save user profile with memberId for backend authorization
+      try {
+        await saveProfile.mutateAsync({
+          name: result.name || 'Member',
+          email: '',
+          memberId: membershipId,
+        });
+        memberAuthLogger.profileSave(membershipId, true);
+      } catch (profileError) {
+        memberAuthLogger.profileSave(membershipId, false);
+        console.error('Failed to save profile, but continuing login:', profileError);
+      }
+
+      // Dispatch custom event for cross-tab sync
+      memberAuthLogger.crossTabSync(membershipId);
+      window.dispatchEvent(
+        new CustomEvent(MEMBER_AUTH_EVENT, {
+          detail: { memberId: membershipId },
+        })
+      );
+
       setIsLoading(false);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
-      console.error('useMemberLogin - Login failed:', errorMessage);
-      setError(errorMessage);
+    } catch (err: any) {
+      const parsedError = parseBackendError(err, membershipId);
+      setError(parsedError);
       setIsLoading(false);
     }
   };
 
-  return { 
-    login, 
-    isLoading: isLoading || isFetching, 
-    error 
+  const logout = () => {
+    memberAuthLogger.localStorageOperation('remove');
+    localStorage.removeItem(MEMBER_AUTH_KEY);
+    
+    // Dispatch custom event for cross-tab sync
+    window.dispatchEvent(
+      new CustomEvent(MEMBER_AUTH_EVENT, {
+        detail: { memberId: null },
+      })
+    );
+  };
+
+  return {
+    login,
+    logout,
+    isLoading,
+    error,
   };
 }

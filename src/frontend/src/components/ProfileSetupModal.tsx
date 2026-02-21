@@ -32,7 +32,7 @@ export default function ProfileSetupModal({ open }: ProfileSetupModalProps) {
         <DialogHeader>
           <DialogTitle>Complete Your Profile</DialogTitle>
           <DialogDescription>
-            Please provide your information to get started with FitPro Gym.
+            Please provide your information to get started with RawFit Gym.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -44,6 +44,7 @@ export default function ProfileSetupModal({ open }: ProfileSetupModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              autoFocus
             />
           </div>
           <div className="space-y-2">

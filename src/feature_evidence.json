@@ -2,10 +2,35 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-member-authentication-flow-in-usememberauth-ts-properly-handles-reactivated-memberships-and-does-not-cache-stale-pause-status",
-      "featureTitle": "Ensure the member authentication flow in useMemberAuth.ts properly handles reactivated memberships and does not cache stale pause status",
+      "featureId": "feature-investigate-and-fix-the-member-login-authentication-flow-that-is-currently-showing-failed-errors-when-members-attempt-to-log-in-with-their-membership-id",
+      "featureTitle": "Investigate and fix the member login authentication flow that is currently showing 'failed' errors when members attempt to log in with their membership ID",
       "files": [
         "frontend/src/hooks/useMemberAuth.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/MemberLoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-error-logging-and-diagnostics-to-the-member-authentication-flow-to-capture-why-login-attempts-are-failing-including-backend-validation-responses-and-network-errors",
+      "featureTitle": "Add error logging and diagnostics to the member authentication flow to capture why login attempts are failing, including backend validation responses and network errors",
+      "files": [
+        "frontend/src/hooks/useMemberAuth.ts",
+        "frontend/src/lib/memberAuthLogger.ts",
         "frontend/src/pages/MemberLoginPage.tsx"
       ],
       "components": [
@@ -21,28 +46,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-verify-that-the-membership-status-update-flow-in-the-admin-memberstab-correctly-persists-status-changes-and-invalidates-relevant-queries",
-      "featureTitle": "Verify that the membership status update flow in the admin MembersTab correctly persists status changes and invalidates relevant queries",
-      "files": [
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

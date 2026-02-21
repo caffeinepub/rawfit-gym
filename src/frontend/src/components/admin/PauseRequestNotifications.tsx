@@ -54,7 +54,7 @@ export default function PauseRequestNotifications() {
     if (selectedRequest) {
       await approvePauseRequest.mutateAsync({
         requestId: selectedRequest,
-        adminMessage: adminMessage.trim() || undefined,
+        adminMessage: adminMessage.trim() || null,
       });
       setIsApproveDialogOpen(false);
       setSelectedRequest(null);
@@ -66,7 +66,7 @@ export default function PauseRequestNotifications() {
     if (selectedRequest) {
       await denyPauseRequest.mutateAsync({
         requestId: selectedRequest,
-        adminMessage: adminMessage.trim() || undefined,
+        adminMessage: adminMessage.trim() || null,
       });
       setIsDenyDialogOpen(false);
       setSelectedRequest(null);

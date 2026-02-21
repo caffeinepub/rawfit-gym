@@ -3,18 +3,18 @@ import Nat "mo:core/Nat";
 import List "mo:core/List";
 import Array "mo:core/Array";
 import Principal "mo:core/Principal";
-import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Text "mo:core/Text";
-import Iter "mo:core/Iter";
 import Order "mo:core/Order";
+import Runtime "mo:core/Runtime";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 actor {
-  let actorVersion = "v1.2.1";
+  let actorVersion = "v1.2.3.0";
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
@@ -152,14 +152,17 @@ actor {
     latitude = 23.5584;
     longitude = 87.2927;
   };
+
   var authorizedRadiusMeters = 100;
   var idCounter = 0;
 
   let autoCheckoutTimeout : Time.Time = 4 * 60 * 60 * 1_000_000_000;
+
   let pauseRequestExpiryPeriod : Time.Time = 3 * 24 * 60 * 60 * 1_000_000_000;
 
   func isMembershipActive(memberId : Text) : Bool {
     let memberOpt = members.get(memberId);
+
     switch (memberOpt) {
       case (null) { false };
       case (?member) {
@@ -170,6 +173,26 @@ actor {
           };
           case (#inactive) { false };
           case (#paused) { false };
+        };
+      };
+    };
+  };
+
+  func isMembershipValid(memberId : Text) : Bool {
+    let memberOpt = members.get(memberId);
+
+    switch (memberOpt) {
+      case (null) { false };
+      case (?member) {
+        let now = Time.now();
+        switch (member.status) {
+          case (#active) {
+            now >= member.membershipStart and now <= member.membershipEnd;
+          };
+          case (#paused) {
+            now >= member.membershipStart and now <= member.membershipEnd;
+          };
+          case (#inactive) { false };
         };
       };
     };
@@ -217,7 +240,6 @@ actor {
         notFound = { entity = ""; id = "" };
       };
     };
-
     if (isTextEmpty(profile.contactInfo)) {
       return ?{
         missingField = { fieldName = "contactInfo" };
@@ -225,7 +247,6 @@ actor {
         notFound = { entity = ""; id = "" };
       };
     };
-
     if (isTextEmpty(profile.packageId)) {
       return ?{
         missingField = { fieldName = "packageId" };
@@ -233,7 +254,6 @@ actor {
         notFound = { entity = ""; id = "" };
       };
     };
-
     if (profile.membershipStart == 0) {
       return ?{
         missingField = { fieldName = "membershipStart" };
@@ -319,9 +339,7 @@ actor {
   };
 
   func isAuthorizedForMember(caller : Principal, memberId : Text) : Bool {
-    if (AccessControl.isAdmin(accessControlState, caller)) {
-      return true;
-    };
+    if (AccessControl.isAdmin(accessControlState, caller)) { return true };
 
     let profileOpt = userProfiles.get(caller);
     switch (profileOpt) {
@@ -339,6 +357,7 @@ actor {
     if (request.status == #pending) {
       let now = Time.now();
       let timeSinceRequest = now - request.requestedAt;
+
       if (timeSinceRequest >= pauseRequestExpiryPeriod) {
         let expiredRequest : PauseRequest = {
           request with
@@ -353,14 +372,17 @@ actor {
         return expiredRequest;
       };
     };
+
     request;
   };
 
   func processExpiredRequests() {
     let now = Time.now();
+
     for ((requestId, request) in pauseRequests.entries()) {
       if (request.status == #pending) {
         let timeSinceRequest = now - request.requestedAt;
+
         if (timeSinceRequest >= pauseRequestExpiryPeriod) {
           let expiredRequest : PauseRequest = {
             request with
@@ -399,7 +421,7 @@ actor {
   };
 
   public shared ({ caller }) func createMember(profile : MemberProfile) : async CreateMemberResult {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       return #agentError("Unauthorized: Admins only");
     };
 
@@ -413,66 +435,75 @@ actor {
   };
 
   public shared ({ caller }) func updateMember(profile : MemberProfile) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     members.add(profile.id, profile);
   };
 
   public shared ({ caller }) func createDietChart(diet : DietChart) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     diets.add(diet.id, diet);
   };
 
   public shared ({ caller }) func updateDietChart(diet : DietChart) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     diets.add(diet.id, diet);
   };
 
   public shared ({ caller }) func createWorkoutChart(workout : WorkoutChart) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     workouts.add(workout.id, workout);
   };
 
   public shared ({ caller }) func updateWorkoutChart(workout : WorkoutChart) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     workouts.add(workout.id, workout);
   };
 
   public shared ({ caller }) func createMembershipPackage(pkg : MembershipPackage) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     packages.add(pkg.id, pkg);
   };
 
   public shared ({ caller }) func updateMembershipPackage(pkg : MembershipPackage) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     packages.add(pkg.id, pkg);
   };
 
   public shared ({ caller }) func deleteMembershipPackage(packageId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     if (not packages.containsKey(packageId)) {
       Runtime.trap("Package not found");
     };
+
     packages.remove(packageId);
   };
 
   public shared ({ caller }) func recordAttendance(record : AttendanceRecord) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
 
@@ -562,7 +593,6 @@ actor {
               };
 
               let newList = List.empty<AttendanceRecord>();
-
               var index = 0;
               while (index + 1 < recordsArray.size()) {
                 newList.add(recordsArray[index]);
@@ -579,7 +609,7 @@ actor {
   };
 
   public shared ({ caller }) func processAutoCheckout(memberId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
 
@@ -588,6 +618,7 @@ actor {
     };
 
     let currentStatus = getCurrentAttendanceStatus(memberId);
+
     switch (currentStatus) {
       case (null) {};
       case (?currentRecord) {
@@ -611,7 +642,6 @@ actor {
               let recordsArray = records.toArray();
               if (recordsArray.size() > 0) {
                 let newList = List.empty<AttendanceRecord>();
-
                 var index = 0;
                 while (index + 1 < recordsArray.size()) {
                   newList.add(recordsArray[index]);
@@ -637,8 +667,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -665,16 +695,18 @@ actor {
   };
 
   public shared ({ caller }) func addVideo(metadata : VideoMetadata) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     videos.add(metadata.id, metadata);
   };
 
   public shared ({ caller }) func deleteVideo(videoId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     videos.remove(videoId);
   };
 
@@ -683,8 +715,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -699,8 +731,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -719,8 +751,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -739,8 +771,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -759,8 +791,8 @@ actor {
       Runtime.trap("Member not found");
     };
 
-    if (not isMembershipActive(memberId)) {
-      Runtime.trap("Membership is not active");
+    if (not isMembershipValid(memberId)) {
+      Runtime.trap("Membership is not valid");
     };
 
     if (not isAuthorizedForMember(caller, memberId)) {
@@ -785,30 +817,34 @@ actor {
   };
 
   public query ({ caller }) func getAllMembers() : async [MemberProfile] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     members.values().toArray();
   };
 
   public query ({ caller }) func getAllDietCharts() : async [DietChart] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     diets.values().toArray();
   };
 
   public query ({ caller }) func getAllWorkoutCharts() : async [WorkoutChart] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     workouts.values().toArray();
   };
 
   public query ({ caller }) func getAllMembershipPackages() : async [MembershipPackage] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     packages.values().toArray();
   };
 
@@ -822,7 +858,6 @@ actor {
     };
 
     let member = findMemberProfile(memberId);
-
     switch (member.status) {
       case (#active) {
         let requestId = generateUniqueId();
@@ -904,8 +939,8 @@ actor {
     };
 
     let now = Time.now();
-    var hasPending = false;
 
+    var hasPending = false;
     for ((_, request) in pauseRequests.entries()) {
       if (request.memberId == memberId and request.status == #pending) {
         let timeSinceRequest = now - request.requestedAt;
@@ -919,7 +954,7 @@ actor {
   };
 
   public shared ({ caller }) func approvePauseRequest(requestId : Text, adminMessage : ?Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
 
@@ -948,7 +983,7 @@ actor {
   };
 
   public shared ({ caller }) func denyPauseRequest(requestId : Text, adminMessage : ?Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
 
@@ -968,10 +1003,12 @@ actor {
   };
 
   public query ({ caller }) func getAllPauseRequests() : async [PauseRequest] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
+
     processExpiredRequests();
+
     let requests = pauseRequests.values().toArray();
     let sortedRequests = requests.sort(
       func(a, b) {
@@ -984,6 +1021,7 @@ actor {
         };
       }
     );
+
     sortedRequests;
   };
 
@@ -997,7 +1035,6 @@ actor {
     };
 
     let member = findMemberProfile(memberId);
-
     switch (member.status) {
       case (#paused) {
         let updatedMember = { member with status = #active };
@@ -1015,23 +1052,67 @@ actor {
   public query ({ caller }) func validateMemberLogin(memberId : Text) : async {
     isValid : Bool;
   } {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only authenticated users can validate member login");
+    if (not members.containsKey(memberId)) {
+      Runtime.trap("Member not found");
+    };
+
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only validate your own membership or as admin");
     };
 
     let memberOpt = members.get(memberId);
+
     switch (memberOpt) {
       case (null) {
         { isValid = false };
       };
       case (?member) {
         let now = Time.now();
-        let isActive = switch (member.status) {
-          case (#active) { now >= member.membershipStart and now <= member.membershipEnd };
+        let isValid = switch (member.status) {
+          case (#active) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
           case (#inactive) { false };
-          case (#paused) { false };
+          case (#paused) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
         };
-        { isValid = isActive };
+        { isValid };
+      };
+    };
+  };
+
+  public query ({ caller }) func getMemberByMembershipId(memberId : Text) : async {
+    isValid : Bool;
+    status : MembershipStatus;
+    member : ?MemberProfile;
+  } {
+    if (not members.containsKey(memberId)) {
+      Runtime.trap("Member not found");
+    };
+
+    if (not isAuthorizedForMember(caller, memberId)) {
+      Runtime.trap("Unauthorized: Can only view your own membership details or as admin");
+    };
+
+    let memberOpt = members.get(memberId);
+
+    switch (memberOpt) {
+      case (null) {
+        { isValid = false; status = #inactive; member = null };
+      };
+      case (?member) {
+        let now = Time.now();
+        let isValid = switch (member.status) {
+          case (#active) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
+          case (#inactive) { false };
+          case (#paused) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
+        };
+        { isValid; status = member.status; member = memberOpt };
       };
     };
   };
@@ -1042,20 +1123,16 @@ actor {
   };
 
   public shared ({ caller }) func updateGymLocation(location : LocationCoordinates, radius : Nat) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
     authorizedRadiusMeters := radius;
   };
 
-  public query ({ caller }) func getGymLocation() : async {
+  public query func getGymLocation() : async {
     location : LocationCoordinates;
     radius : Nat;
   } {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only authenticated users can access gym location");
-    };
-
     {
       location = gymLocation;
       radius = authorizedRadiusMeters;
@@ -1063,7 +1140,7 @@ actor {
   };
 
   public query ({ caller }) func getMemberByContactInfo(contactInfo : Text) : async ?MemberProfile {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Admins only");
     };
 
@@ -1072,6 +1149,7 @@ actor {
         profile.contactInfo == contactInfo;
       }
     );
+
     switch (filtered.size()) {
       case (0) { null };
       case (_) {
@@ -1084,7 +1162,46 @@ actor {
     };
   };
 
-  public query ({ caller }) func healthCheck() : async {
+  public query ({ caller }) func memberLogin(membershipId : Text) : async {
+    isValid : Bool;
+    status : MembershipStatus;
+    name : Text;
+  } {
+    if (not members.containsKey(membershipId)) {
+      Runtime.trap("Member not found");
+    };
+
+    if (not isAuthorizedForMember(caller, membershipId)) {
+      Runtime.trap("Unauthorized: Can only login with your own membership ID or as admin");
+    };
+
+    let memberOpt = members.get(membershipId);
+
+    switch (memberOpt) {
+      case (null) {
+        { isValid = false; status = #inactive; name = "" };
+      };
+      case (?member) {
+        let now = Time.now();
+        let isValid = switch (member.status) {
+          case (#active) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
+          case (#paused) {
+            now >= member.membershipStart and now <= member.membershipEnd
+          };
+          case (#inactive) { false };
+        };
+        {
+          isValid;
+          status = member.status;
+          name = member.name;
+        };
+      };
+    };
+  };
+
+  public query func healthCheck() : async {
     ok : Bool;
     timestamp : Time.Time;
     version : Text;
