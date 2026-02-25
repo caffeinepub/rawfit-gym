@@ -1,0 +1,66 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-24T23:51:35.956Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 2,
+    "implemented": 2,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Diagnose and fix the member login flow so that a valid membership ID successfully authenticates a member and routes them to the MemberDashboard. The fix must cover: (1) the membership ID validation call to the backend, (2) error handling and user-facing error messages in MemberLoginPage, (3) the useMemberAuth hook's login function and localStorage persistence, and (4) the authentication state check in App.tsx that decides whether to render the member dashboard or redirect back to login.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Add visible diagnostic feedback to the MemberLoginPage during the login attempt: show a loading spinner while the backend call is in progress, and surface the full error detail (including any backend error variant) in the error state UI so failures can be identified during testing.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/MemberLoginPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/MemberLoginPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "caffeine.lock.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/AttendanceTab.tsx",
+    "frontend/src/components/member/MemberDashboardTab.tsx",
+    "frontend/src/components/member/MemberHeader.tsx",
+    "frontend/src/components/member/MemberVideoLibraryTab.tsx",
+    "frontend/src/hooks/useMemberAuth.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "frontend/src/pages/LoginSelectionPage.tsx",
+    "frontend/src/pages/MemberDashboard.tsx",
+    "frontend/src/pages/MemberLoginPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

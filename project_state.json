@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Project with member login functionality that is currently broken/not working.",
+  "architectural_notes": [],
+  "known_issues": [
+    "Member login is not working (persists after fix attempt in v47)"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-diagnose-and-fix-the-member-login-flow-so-that-a-valid-membership-id-successfully-authenticates-a-member-and-routes-them-to-the-memberdashboard-the-fix-must-cover-1-the-membership-id-validation-call-to-the-backend-2-error-handling-and-user-facing-error-messages-in-memberloginpage-3-the-usememberauth-hook-s-login-function-and-localstorage-persistence-and-4-the-authentication-state-check-in-app-tsx-that-decides-whether-to-render-the-member-dashboard-or-redirect-back-to-login",
+      "title": "Diagnose and fix the member login flow so that a valid membership ID successfully authenticates a member and routes them to the MemberDashboard. The fix must cover: (1) the membership ID validation call to the backend, (2) error handling and user-facing error messages in MemberLoginPage, (3) the useMemberAuth hook's login function and localStorage persistence, and (4) the authentication state check in App.tsx that decides whether to render the member dashboard or redirect back to login.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-visible-diagnostic-feedback-to-the-memberloginpage-during-the-login-attempt-show-a-loading-spinner-while-the-backend-call-is-in-progress-and-surface-the-full-error-detail-including-any-backend-error-variant-in-the-error-state-ui-so-failures-can-be-identified-during-testing",
+      "title": "Add visible diagnostic feedback to the MemberLoginPage during the login attempt: show a loading spinner while the backend call is in progress, and surface the full error detail (including any backend error variant) in the error state UI so failures can be identified during testing.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [],
+  "projectName": "RawFit Gym",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
