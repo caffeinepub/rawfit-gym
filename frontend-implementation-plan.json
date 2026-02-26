@@ -1,55 +1,25 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix member login authentication failure",
+  "title": "Publish Draft Version 49 to Production",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Diagnose and fix the member login flow to ensure valid membership IDs successfully authenticate members and route them to the MemberDashboard, covering backend validation calls, error handling, localStorage persistence, and authentication state checks",
+      "summary": "Promote draft Version 49 to production as the live application version",
       "acceptanceCriteria": [
-        "Entering a valid membership ID on the MemberLoginPage successfully logs in the member and shows the MemberDashboard.",
-        "Entering an invalid membership ID shows a clear, user-friendly error message and does not navigate away from the login page.",
-        "After a successful login, refreshing the page keeps the member logged in (persisted auth state in localStorage).",
-        "Logging out clears the member auth state and returns the user to the login selection page.",
-        "No console errors or unhandled promise rejections occur during the login flow.",
-        "The backend validateMember (or equivalent) function returns the correct result for active members and the frontend correctly interprets that result."
+        "The production environment reflects the changes from draft Version 49.",
+        "The application is accessible and functional in production."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/MemberLoginPage.tsx",
+          "path": "frontend/src/release/expectedProductionVersion.ts",
           "operation": "modify",
-          "description": "Fix the membership ID validation flow to correctly call the backend memberLogin method (not validateMemberLogin), handle the response structure {isValid, status, name}, update error messages to be user-friendly, and ensure navigation to /member-dashboard only occurs on successful authentication with isValid=true. Verify that the form submission prevents default behavior and that query cache is properly invalidated after login. Add defensive checks for null/undefined responses and ensure the error state is cleared before new login attempts."
+          "description": "Update the expected production version constant from 'v1.3.0.0' to 'v1.4.9.0' to reflect Version 49 as the new production baseline. This ensures ProductionVersionNotice component correctly validates the deployed version and that SmokeTestOverlay references the correct version number in its checklist."
         },
         {
-          "path": "frontend/src/hooks/useMemberAuth.ts",
+          "path": "frontend/src/release/smokeTestChecklist.ts",
           "operation": "modify",
-          "description": "Fix the login function to correctly store the authentication state in localStorage with the member ID, ensure the storage event listener properly syncs state across tabs, and verify the logout function clears all member-related data from localStorage and state. Add error parsing logic that extracts user-friendly messages from backend validation errors and maps common error types (notFound, agentError, missingField) to clear explanations. Ensure the hook properly initializes from localStorage on mount and handles edge cases like corrupted storage data."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Fix the authentication state check that decides whether to render the MemberDashboard or redirect to login. Ensure the logic reads from useMemberAuth's state and correctly distinguishes between authenticated member sessions and admin sessions. Verify that the routing logic for /member-dashboard checks for a valid member auth token before rendering the dashboard component, and redirects to /member-login if the member is not authenticated. Add proper handling for the case where both admin and member sessions might exist, prioritizing the appropriate dashboard based on the current route."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Review and fix the member login query hooks to ensure they correctly call backend.memberLogin (not validateMemberLogin) and properly handle the response structure. Ensure query invalidation is triggered after successful login to refresh dependent data (member profile, attendance, etc.). Verify that error handling propagates backend errors to the UI layer and that the query is not cached in a way that prevents retry attempts after failures."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Add visible diagnostic feedback to the MemberLoginPage during login attempts, including a loading spinner during backend calls and full error detail display to surface backend error variants for testing and debugging",
-      "acceptanceCriteria": [
-        "A loading indicator is shown while the membership ID validation request is in flight.",
-        "If the backend returns an error, the exact error message or variant is displayed to the user on the login page.",
-        "The submit button is disabled while a request is in progress to prevent duplicate submissions."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/MemberLoginPage.tsx",
-          "operation": "modify",
-          "description": "Add a loading state that displays a spinner or loading message while the memberLogin backend call is in progress. Disable the submit button during loading to prevent duplicate submissions. Enhance the error display to show the full error detail including backend error variants (e.g., notFound, agentError, missingField with fieldName) in a visible, formatted way for diagnostic purposes. Use the existing UI components (Alert, Button) and ensure the loading spinner is positioned clearly near the submit button or form. Include a visual indication (e.g., opacity change, disabled styling) on the input field during loading."
+          "description": "Update the smoke test checklist definition to reference 'Version 49' instead of 'Version 45' in all category descriptions and item text. Ensure health check, admin flow, and member flow items remain relevant to the current application state. This provides an updated checklist for post-deployment validation in production."
         }
       ]
     }

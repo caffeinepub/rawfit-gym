@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-diagnose-and-fix-the-member-login-flow-so-that-a-valid-membership-id-successfully-authenticates-a-member-and-routes-them-to-the-memberdashboard-the-fix-must-cover-1-the-membership-id-validation-call-to-the-backend-2-error-handling-and-user-facing-error-messages-in-memberloginpage-3-the-usememberauth-hook-s-login-function-and-localstorage-persistence-and-4-the-authentication-state-check-in-app-tsx-that-decides-whether-to-render-the-member-dashboard-or-redirect-back-to-login",
-      "featureTitle": "Diagnose and fix the member login flow so that a valid membership ID successfully authenticates a member and routes them to the MemberDashboard. The fix must cover: (1) the membership ID validation call to the backend, (2) error handling and user-facing error messages in MemberLoginPage, (3) the useMemberAuth hook's login function and localStorage persistence, and (4) the authentication state check in App.tsx that decides whether to render the member dashboard or redirect back to login.",
+      "featureId": "feature-promote-the-current-draft-version-version-49-to-production-making-it-the-live-version-of-the-application",
+      "featureTitle": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/hooks/useMemberAuth.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/MemberLoginPage.tsx"
+        "frontend/src/release/expectedProductionVersion.ts",
+        "frontend/src/release/smokeTestChecklist.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,28 +21,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-visible-diagnostic-feedback-to-the-memberloginpage-during-the-login-attempt-show-a-loading-spinner-while-the-backend-call-is-in-progress-and-surface-the-full-error-detail-including-any-backend-error-variant-in-the-error-state-ui-so-failures-can-be-identified-during-testing",
-      "featureTitle": "Add visible diagnostic feedback to the MemberLoginPage during the login attempt: show a loading spinner while the backend call is in progress, and surface the full error detail (including any backend error variant) in the error state UI so failures can be identified during testing.",
-      "files": [
-        "frontend/src/pages/MemberLoginPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

@@ -1,4 +1,4 @@
-// Production smoke-test checklist for Version 45 (Production Mainnet Deployment)
+// Production smoke-test checklist for Version 49 (Production Mainnet Deployment)
 export interface SmokeTestItem {
   id: string;
   category: 'health' | 'admin' | 'member';
@@ -17,7 +17,7 @@ export const smokeTestChecklist: SmokeTestItem[] = [
   {
     id: 'health-version',
     category: 'health',
-    description: 'Backend version matches expected (v1.3.0.0)',
+    description: 'Backend version matches expected (v1.4.9.0)',
     checked: false,
   },
   

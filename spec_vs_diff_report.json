@@ -1,35 +1,41 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T23:51:35.953Z",
-  "summary": "The diff implements most of REQ-1 and REQ-2. The useMemberAuth hook is rewritten with localStorage persistence and direct state updates, App.tsx has a MemberDashboardGuard that checks memberId, MemberLoginPage shows a loading spinner and error messages, and the backend has a memberLogin function. However, there is a gap in REQ-2: the error display in MemberLoginPage does not surface the full backend error variant/detail — the hook maps backend variants to generic user messages rather than propagating the raw backend error variant to the UI.",
+  "generatedAt": "2026-02-25T21:20:12.029Z",
+  "summary": "The diff modifies 4 files, primarily updating frontend release/version tracking utilities (expectedProductionVersion.ts, smokeTestChecklist.ts) to reference Version 49 / v1.4.9.0, and updating project_state.json and a file summaries document. The changes appear to be preparatory/tracking artifacts for a production deployment rather than the actual promotion of a draft to production. There is no evidence of deployment configuration changes, infrastructure updates, canister deployment scripts, or any mechanism that would actually push the draft to the live production environment.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Surface the full error detail (including any backend error variant) in the error state UI so failures can be identified during testing.",
-      "reason": "The useMemberAuth hook maps backend error variants to generic user-facing strings before returning them. The MemberLoginPage only renders the string passed back from the hook and does not display the raw backend error variant. The exact error variant from the backend is not surfaced to the user in the login page UI.",
+      "id": "REQ-1",
+      "requirement": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
+      "reason": "The diff only updates version tracking and smoke test files plus project state metadata. There is no evidence of actual deployment steps such as deployment scripts, CI/CD pipeline changes, canister upgrade commands, or environment configuration changes that would promote the draft to a live production environment. The acceptance criteria that the production environment reflects Version 49 changes and the application is accessible and functional in production cannot be confirmed from these file changes alone.",
       "evidence": [
-        "frontend/src/hooks/useMemberAuth.ts",
-        "frontend/src/pages/MemberLoginPage.tsx"
+        "frontend/src/release/expectedProductionVersion.ts",
+        "frontend/src/release/smokeTestChecklist.ts",
+        "project_state.json"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.75,
+  "hallucinated_features": [
+    {
+      "description": "Version comparison utility with normalization logic including normalizeVersion, isVersionMatch, and getVersionStatus functions",
+      "reason": "The build request only asks to promote draft Version 49 to production. Adding version matching and comparison utilities with UI status reporting was not requested.",
+      "evidence": [
+        "frontend/src/release/expectedProductionVersion.ts"
+      ]
+    },
+    {
+      "description": "Detailed smoke test checklist with category progress tracking for health, admin, and member flows",
+      "reason": "The build request does not request a smoke test checklist feature or category progress utilities. This is additional tooling beyond the scope of promoting a draft to production.",
+      "evidence": [
+        "frontend/src/release/smokeTestChecklist.ts"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/admin/AttendanceTab.tsx",
-    "frontend/src/components/member/MemberDashboardTab.tsx",
-    "frontend/src/components/member/MemberHeader.tsx",
-    "frontend/src/components/member/MemberVideoLibraryTab.tsx",
-    "frontend/src/hooks/useMemberAuth.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminLoginPage.tsx",
-    "frontend/src/pages/LoginSelectionPage.tsx",
-    "frontend/src/pages/MemberDashboard.tsx",
-    "frontend/src/pages/MemberLoginPage.tsx",
+    "frontend/src/release/expectedProductionVersion.ts",
+    "frontend/src/release/smokeTestChecklist.ts",
     "project_state.json"
   ]
 }

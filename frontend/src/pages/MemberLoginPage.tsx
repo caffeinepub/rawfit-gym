@@ -8,19 +8,22 @@ import { useMemberAuth } from '../hooks/useMemberAuth';
 
 export default function MemberLoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useMemberAuth();
+  const { login, isLoading, error: authError } = useMemberAuth();
 
   const [membershipId, setMembershipId] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Show either local validation error or auth error from the hook
+  const displayError = localError || authError;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setLocalError(null);
 
     const trimmed = membershipId.trim();
     if (!trimmed) {
-      setError('Please enter your membership ID.');
+      setLocalError('Please enter your membership ID.');
       inputRef.current?.focus();
       return;
     }
@@ -66,7 +69,7 @@ export default function MemberLoginPage() {
               value={membershipId}
               onChange={e => {
                 setMembershipId(e.target.value);
-                if (error) setError(null);
+                if (localError) setLocalError(null);
               }}
               disabled={isLoading}
               autoComplete="off"
@@ -75,11 +78,11 @@ export default function MemberLoginPage() {
             />
           </div>
 
-          {error && (
+          {displayError && (
             <Alert variant="destructive" className="py-3">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="text-sm font-semibold">Login Failed</AlertTitle>
-              <AlertDescription className="text-xs mt-0.5">{error}</AlertDescription>
+              <AlertDescription className="text-xs mt-0.5">{displayError}</AlertDescription>
             </Alert>
           )}
 

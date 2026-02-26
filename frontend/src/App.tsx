@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
@@ -18,17 +18,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// ─── Route guards ─────────────────────────────────────────────────────────────
-
-function getMemberAuthId(): string | null {
-  try {
-    return localStorage.getItem('memberAuth_memberId');
-  } catch {
-    return null;
-  }
-}
-
-// ─── Layout wrapper (provides hooks to child routes) ─────────────────────────
+// ─── Layout wrapper ───────────────────────────────────────────────────────────
 
 function RootLayout() {
   return <Outlet />;
@@ -47,15 +37,21 @@ function AdminDashboardGuard() {
 
 function MemberDashboardGuard() {
   const { memberId } = useMemberAuth();
-  const [checked, setChecked] = useState(false);
 
-  useEffect(() => {
-    setChecked(true);
-  }, []);
+  // Read directly from localStorage as the source of truth for the guard.
+  // useMemberAuth initialises synchronously from localStorage, so memberId
+  // is available on the very first render after a successful login.
+  const storedId = (() => {
+    try {
+      return localStorage.getItem('memberAuth_memberId');
+    } catch {
+      return null;
+    }
+  })();
 
-  if (!checked) return null;
+  const isAuthenticated = !!(memberId || storedId);
 
-  if (!memberId) {
+  if (!isAuthenticated) {
     window.location.replace('/#/member-login');
     return null;
   }

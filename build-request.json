@@ -1,58 +1,30 @@
 {
   "kind": "build_request",
-  "title": "Fix member login authentication failure",
+  "title": "Publish draft to production",
   "projectName": "RawFit Gym",
-  "priority": "high",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Diagnose and fix the member login flow so that a valid membership ID successfully authenticates a member and routes them to the MemberDashboard. The fix must cover: (1) the membership ID validation call to the backend, (2) error handling and user-facing error messages in MemberLoginPage, (3) the useMemberAuth hook's login function and localStorage persistence, and (4) the authentication state check in App.tsx that decides whether to render the member dashboard or redirect back to login.",
+      "text": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-7"
+          "msg-1"
         ],
         "quotes": [
-          "member login  is still not working"
+          "Go live"
         ]
       },
       "acceptanceCriteria": [
-        "Entering a valid membership ID on the MemberLoginPage successfully logs in the member and shows the MemberDashboard.",
-        "Entering an invalid membership ID shows a clear, user-friendly error message and does not navigate away from the login page.",
-        "After a successful login, refreshing the page keeps the member logged in (persisted auth state in localStorage).",
-        "Logging out clears the member auth state and returns the user to the login selection page.",
-        "No console errors or unhandled promise rejections occur during the login flow.",
-        "The backend validateMember (or equivalent) function returns the correct result for active members and the frontend correctly interprets that result."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Add visible diagnostic feedback to the MemberLoginPage during the login attempt: show a loading spinner while the backend call is in progress, and surface the full error detail (including any backend error variant) in the error state UI so failures can be identified during testing.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-7"
-        ],
-        "quotes": [
-          "member login  is still not working"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A loading indicator is shown while the membership ID validation request is in flight.",
-        "If the backend returns an error, the exact error message or variant is displayed to the user on the login page.",
-        "The submit button is disabled while a request is in progress to prevent duplicate submissions."
+        "The production environment reflects the changes from draft Version 49.",
+        "The application is accessible and functional in production."
       ]
     }
   ],
-  "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "All Motoko changes must remain within backend/main.mo as a single actor.",
-    "Do not change the admin (Internet Identity) authentication flow."
-  ],
+  "constraints": [],
   "nonGoals": [
-    "Redesigning the member login UI beyond functional error/loading states.",
-    "Adding new membership features or dashboard functionality.",
-    "Changing the admin login or Internet Identity flow."
+    "Introducing new features or changes beyond what is already in draft Version 49."
   ],
   "imageRequirements": {
     "required": [],
