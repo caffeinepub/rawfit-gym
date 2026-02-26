@@ -1,25 +1,65 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Publish Draft Version 49 to Production",
+  "title": "Fix Member Login Authentication Flow",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Promote draft Version 49 to production as the live application version",
+      "summary": "Fix the member login flow so that submitting a valid membership ID successfully authenticates the member, persists the login state to localStorage, and navigates to the MemberDashboard without error",
       "acceptanceCriteria": [
-        "The production environment reflects the changes from draft Version 49.",
-        "The application is accessible and functional in production."
+        "Entering a valid membership ID and submitting the form on MemberLoginPage does not show a login error.",
+        "On successful login, the member is redirected to the MemberDashboard page.",
+        "The member's auth state is persisted to localStorage and survives a page refresh.",
+        "If the membership ID is invalid or not found, an appropriate error message is shown without crashing the app.",
+        "The MemberDashboardGuard in App.tsx correctly reads the persisted localStorage auth state and allows access to the dashboard route."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/release/expectedProductionVersion.ts",
+          "path": "frontend/src/pages/MemberLoginPage.tsx",
           "operation": "modify",
-          "description": "Update the expected production version constant from 'v1.3.0.0' to 'v1.4.9.0' to reflect Version 49 as the new production baseline. This ensures ProductionVersionNotice component correctly validates the deployed version and that SmokeTestOverlay references the correct version number in its checklist."
+          "description": "Fix the member login form submission handler to properly call the backend memberLogin or getMemberByMembershipId function, handle all response variants (success with member data, not found, invalid status), update error state with user-friendly messages, persist authentication state via useMemberAuth.login(), and navigate to /member-dashboard only after successful authentication. Ensure proper error boundaries around async operations and display validation errors inline without crashing the form."
         },
         {
-          "path": "frontend/src/release/smokeTestChecklist.ts",
+          "path": "frontend/src/hooks/useMemberAuth.ts",
           "operation": "modify",
-          "description": "Update the smoke test checklist definition to reference 'Version 49' instead of 'Version 45' in all category descriptions and item text. Ensure health check, admin flow, and member flow items remain relevant to the current application state. This provides an updated checklist for post-deployment validation in production."
+          "description": "Audit and fix the useMemberAuth hook to ensure the login function correctly calls the backend (memberLogin or getMemberByMembershipId), handles all backend response variants including optional/null results, extracts member data properly, persists { memberId, memberName, isAuthenticated: true } to localStorage under a consistent key, dispatches storage events for cross-tab sync, and returns clear success/error states. Add error logging via memberAuthLogger for debugging. Ensure logout clears localStorage and dispatches events. Verify that the hook initializes auth state from localStorage on mount and listens for storage events to sync across tabs."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Fix the MemberDashboardGuard component to correctly read the persisted member auth state from localStorage (using the same key as useMemberAuth), check the isAuthenticated flag, and redirect unauthenticated users to /member-login. Ensure the guard does not cause infinite redirect loops and handles missing or malformed localStorage data gracefully by treating it as unauthenticated. Add a loading state if needed to avoid flashing content before the auth check completes."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Review and fix any existing member login query or mutation (e.g., useMemberLogin or useGetMemberByMembershipId) to ensure it correctly calls the backend memberLogin or getMemberByMembershipId function, maps the backend response to a frontend-friendly format, and handles all result variants (success, notFound, invalid status) without throwing unhandled errors. If no such query exists, add a useMemberLogin mutation that wraps the backend call and returns { success: boolean, member?: MemberProfile, error?: string } for use in MemberLoginPage."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Audit and fix the frontend handling of backend member validation responses to ensure the useMemberAuth hook and MemberLoginPage correctly interpret success, not-found, and invalid status responses without throwing unhandled errors",
+      "acceptanceCriteria": [
+        "The backend returns the correct member record when queried with a valid membership ID.",
+        "The backend returns a clear null/error variant when the membership ID is not found.",
+        "The useMemberAuth hook in the frontend correctly interprets both success and failure responses from the backend without throwing unhandled errors.",
+        "The MemberLoginPage displays the correct error state when the backend returns a not-found response."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useMemberAuth.ts",
+          "operation": "modify",
+          "description": "Ensure the useMemberAuth hook's login function correctly handles all backend response variants from getMemberByMembershipId (which returns { isValid: boolean, status: MembershipStatus, member?: MemberProfile }). Check if isValid is false or member is missing and return a clear error message. If isValid is true and status is 'active', extract member data and persist to localStorage. If status is 'paused' or 'inactive', return an appropriate error message (e.g., 'Membership is paused/expired'). Add structured error logging via memberAuthLogger for all failure paths. Wrap backend calls in try-catch blocks to handle network errors or unexpected response formats gracefully."
+        },
+        {
+          "path": "frontend/src/pages/MemberLoginPage.tsx",
+          "operation": "modify",
+          "description": "Update the MemberLoginPage to display the specific error messages returned by useMemberAuth.login() (e.g., 'Membership ID not found', 'Membership is paused', 'Network error'). Ensure the error message is cleared when the user modifies the input field. Add a retry mechanism if the login fails due to a transient error. Ensure the form does not submit multiple times concurrently by disabling the submit button during the async operation."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "If a dedicated member login query/mutation exists, ensure it correctly unwraps the backend response from getMemberByMembershipId, checks the isValid flag, and maps the result to { success: boolean, member?: MemberProfile, error?: string }. If the backend returns { isValid: false }, map it to { success: false, error: 'Membership ID not found or invalid' }. If member is missing despite isValid: true, return { success: false, error: 'Member data not available' }. Handle all optional fields safely to avoid null/undefined crashes."
         }
       ]
     }

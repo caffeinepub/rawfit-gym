@@ -1,30 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Publish draft to production",
-  "projectName": "RawFit Gym",
-  "priority": "normal",
+  "title": "Fix member login failure",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
-      "target": "both",
+      "text": "Fix the member login flow so that submitting a valid membership ID on the MemberLoginPage successfully authenticates the member, persists the login state to localStorage via useMemberAuth, and navigates to the MemberDashboard without error.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-7"
         ],
         "quotes": [
-          "Go live"
+          "Login failed still now"
         ]
       },
       "acceptanceCriteria": [
-        "The production environment reflects the changes from draft Version 49.",
-        "The application is accessible and functional in production."
+        "Entering a valid membership ID and submitting the form on MemberLoginPage does not show a login error.",
+        "On successful login, the member is redirected to the MemberDashboard page.",
+        "The member's auth state is persisted to localStorage and survives a page refresh.",
+        "If the membership ID is invalid or not found, an appropriate error message is shown without crashing the app.",
+        "The MemberDashboardGuard in App.tsx correctly reads the persisted localStorage auth state and allows access to the dashboard route."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Audit and fix the backend getMemberByMembershipId (or equivalent) query/validation logic to ensure it correctly returns member data when queried with a valid membership ID, and that the frontend useMemberAuth hook properly handles the backend response (including any optional/null result variants).",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ],
+        "quotes": [
+          "Login failed still now"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The backend returns the correct member record when queried with a valid membership ID.",
+        "The backend returns a clear null/error variant when the membership ID is not found.",
+        "The useMemberAuth hook in the frontend correctly interprets both success and failure responses from the backend without throwing unhandled errors.",
+        "The MemberLoginPage displays the correct error state when the backend returns a not-found response."
       ]
     }
   ],
-  "constraints": [],
+  "constraints": [
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Preserve all existing admin login and Internet Identity authentication flows — only the member login path should be changed."
+  ],
   "nonGoals": [
-    "Introducing new features or changes beyond what is already in draft Version 49."
+    "Admin login changes",
+    "UI redesign of the login page",
+    "Changes to attendance, diet, workout, or video features"
   ],
   "imageRequirements": {
     "required": [],

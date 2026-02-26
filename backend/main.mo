@@ -2,18 +2,18 @@ import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import List "mo:core/List";
 import Array "mo:core/Array";
+import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Time "mo:core/Time";
 import Text "mo:core/Text";
 import Order "mo:core/Order";
-import Runtime "mo:core/Runtime";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 actor {
-  let actorVersion = "v1.2.3.0";
+  let actorVersion = "v1.2.3.1";
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
@@ -1193,4 +1193,3 @@ actor {
     };
   };
 };
-

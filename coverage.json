@@ -1,37 +1,58 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T21:20:12.032Z",
+  "generatedAt": "2026-02-26T20:14:41.319Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
+        "summary": "Fix the member login flow so that submitting a valid membership ID on the MemberLoginPage successfully authenticates the member, persists the login state to localStorage via useMemberAuth, and navigates to the MemberDashboard without error.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/release/expectedProductionVersion.ts",
-          "frontend/src/release/smokeTestChecklist.ts"
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/release/expectedProductionVersion.ts",
-          "frontend/src/release/smokeTestChecklist.ts"
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Audit and fix the backend getMemberByMembershipId (or equivalent) query/validation logic to ensure it correctly returns member data when queried with a valid membership ID, and that the frontend useMemberAuth hook properly handles the backend response (including any optional/null result variants).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useMemberAuth.ts",
+          "frontend/src/pages/MemberLoginPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
+    "build-template/README.md",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/release/expectedProductionVersion.ts",
-    "frontend/src/release/smokeTestChecklist.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/hooks/useMemberAuth.ts",
+    "frontend/src/pages/MemberLoginPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -1,78 +1,49 @@
-import React, { useEffect, useState } from 'react';
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
-import { Toaster } from '@/components/ui/sonner';
-
 import LoginSelectionPage from './pages/LoginSelectionPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import MemberLoginPage from './pages/MemberLoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import MemberDashboard from './pages/MemberDashboard';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useMemberAuth } from './hooks/useMemberAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: {
+      retry: 2,
+      staleTime: 30_000,
+    },
   },
 });
 
-// ─── Layout wrapper ───────────────────────────────────────────────────────────
+// ── Auth helpers ──────────────────────────────────────────────────────────────
 
-function RootLayout() {
-  return <Outlet />;
-}
-
-// ─── Page wrappers that use auth hooks ───────────────────────────────────────
-
-function AdminDashboardGuard() {
-  const { identity } = useInternetIdentity();
-  if (!identity) {
-    window.location.replace('/#/admin-login');
-    return null;
-  }
-  return <AdminDashboard />;
-}
-
-function MemberDashboardGuard() {
-  const { memberId } = useMemberAuth();
-
-  // Read directly from localStorage as the source of truth for the guard.
-  // useMemberAuth initialises synchronously from localStorage, so memberId
-  // is available on the very first render after a successful login.
-  const storedId = (() => {
-    try {
-      return localStorage.getItem('memberAuth_memberId');
-    } catch {
-      return null;
+function getMemberAuthFromStorage(): { isAuthenticated: boolean; memberId: string | null } {
+  try {
+    const raw = localStorage.getItem('memberAuth');
+    if (!raw) return { isAuthenticated: false, memberId: null };
+    const parsed = JSON.parse(raw);
+    if (parsed.isAuthenticated && parsed.memberId) {
+      return { isAuthenticated: true, memberId: parsed.memberId };
     }
-  })();
-
-  const isAuthenticated = !!(memberId || storedId);
-
-  if (!isAuthenticated) {
-    window.location.replace('/#/member-login');
-    return null;
+  } catch {
+    // ignore
   }
-
-  return <MemberDashboard />;
+  return { isAuthenticated: false, memberId: null };
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
+// ── Root layout ───────────────────────────────────────────────────────────────
 
-const rootRoute = createRootRoute({ component: RootLayout });
+const rootRoute = createRootRoute({
+  component: () => <Outlet />,
+});
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: LoginSelectionPage,
-});
-
-const adminLoginRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/admin-login',
-  component: AdminLoginPage,
 });
 
 const memberLoginRoute = createRoute({
@@ -81,55 +52,55 @@ const memberLoginRoute = createRoute({
   component: MemberLoginPage,
 });
 
-const adminDashboardRoute = createRoute({
+const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/admin-dashboard',
-  component: AdminDashboardGuard,
+  path: '/admin-login',
+  component: AdminLoginPage,
 });
 
 const memberDashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/member-dashboard',
-  component: MemberDashboardGuard,
+  beforeLoad: () => {
+    const { isAuthenticated } = getMemberAuthFromStorage();
+    if (!isAuthenticated) {
+      throw redirect({ to: '/member-login' });
+    }
+  },
+  component: MemberDashboard,
 });
+
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin-dashboard',
+  component: AdminDashboard,
+});
+
+// ── Router ────────────────────────────────────────────────────────────────────
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  adminLoginRoute,
   memberLoginRoute,
-  adminDashboardRoute,
+  adminLoginRoute,
   memberDashboardRoute,
+  adminDashboardRoute,
 ]);
 
 const router = createRouter({ routeTree });
 
-// ─── App ──────────────────────────────────────────────────────────────────────
-
-function AppInner() {
-  const { identity, isInitializing } = useInternetIdentity();
-  const { memberId } = useMemberAuth();
-
-  // Auto-redirect authenticated users away from login pages
-  useEffect(() => {
-    if (isInitializing) return;
-    const path = window.location.hash.replace('#', '') || '/';
-
-    if (identity && (path === '/' || path === '/admin-login')) {
-      router.navigate({ to: '/admin-dashboard' });
-    } else if (memberId && (path === '/' || path === '/member-login')) {
-      router.navigate({ to: '/member-dashboard' });
-    }
-  }, [identity, memberId, isInitializing]);
-
-  return <RouterProvider router={router} />;
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
 }
+
+// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <AppInner />
-        <Toaster />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <RouterProvider router={router} />
       </ThemeProvider>
     </QueryClientProvider>
   );

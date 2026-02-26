@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-promote-the-current-draft-version-version-49-to-production-making-it-the-live-version-of-the-application",
-      "featureTitle": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
+      "featureId": "feature-fix-the-member-login-flow-so-that-submitting-a-valid-membership-id-on-the-memberloginpage-successfully-authenticates-the-member-persists-the-login-state-to-localstorage-via-usememberauth-and-navigates-to-the-memberdashboard-without-error",
+      "featureTitle": "Fix the member login flow so that submitting a valid membership ID on the MemberLoginPage successfully authenticates the member, persists the login state to localStorage via useMemberAuth, and navigates to the MemberDashboard without error.",
       "files": [
-        "frontend/src/release/expectedProductionVersion.ts",
-        "frontend/src/release/smokeTestChecklist.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useMemberAuth.ts",
+        "frontend/src/pages/MemberLoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,6 +22,29 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-audit-and-fix-the-backend-getmemberbymembershipid-or-equivalent-query-validation-logic-to-ensure-it-correctly-returns-member-data-when-queried-with-a-valid-membership-id-and-that-the-frontend-usememberauth-hook-properly-handles-the-backend-response-including-any-optional-null-result-variants",
+      "featureTitle": "Audit and fix the backend getMemberByMembershipId (or equivalent) query/validation logic to ensure it correctly returns member data when queried with a valid membership ID, and that the frontend useMemberAuth hook properly handles the backend response (including any optional/null result variants).",
+      "files": [
+        "frontend/src/hooks/useMemberAuth.ts",
+        "frontend/src/pages/MemberLoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

@@ -1,41 +1,42 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T21:20:12.029Z",
-  "summary": "The diff modifies 4 files, primarily updating frontend release/version tracking utilities (expectedProductionVersion.ts, smokeTestChecklist.ts) to reference Version 49 / v1.4.9.0, and updating project_state.json and a file summaries document. The changes appear to be preparatory/tracking artifacts for a production deployment rather than the actual promotion of a draft to production. There is no evidence of deployment configuration changes, infrastructure updates, canister deployment scripts, or any mechanism that would actually push the draft to the live production environment.",
+  "generatedAt": "2026-02-26T20:14:41.316Z",
+  "summary": "The diff implements significant frontend changes for the member login flow (REQ-1) including App.tsx route guards, useMemberAuth hook with localStorage persistence, and MemberLoginPage with error handling. However, the backend changes for REQ-2 are only partially visible due to truncation of backend/main.mo, and there is no clear evidence of a new memberLogin endpoint being added or the getMemberByMembershipId query being audited/fixed.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
-      "reason": "The diff only updates version tracking and smoke test files plus project state metadata. There is no evidence of actual deployment steps such as deployment scripts, CI/CD pipeline changes, canister upgrade commands, or environment configuration changes that would promote the draft to a live production environment. The acceptance criteria that the production environment reflects Version 49 changes and the application is accessible and functional in production cannot be confirmed from these file changes alone.",
+      "id": "REQ-2",
+      "requirement": "Audit and fix the backend getMemberByMembershipId (or equivalent) query/validation logic to ensure it correctly returns member data when queried with a valid membership ID, and that the frontend useMemberAuth hook properly handles the backend response (including any optional/null result variants).",
+      "reason": "The backend/main.mo diff is truncated and does not show evidence of a memberLogin function being added or the getMemberByMembershipId query being audited/fixed. The frontend useMemberAuth.ts calls actor.memberLogin(trimmedId) and checks result.isValid and result.status, but no backend function returning that response shape is visible in the truncated diff.",
       "evidence": [
-        "frontend/src/release/expectedProductionVersion.ts",
-        "frontend/src/release/smokeTestChecklist.ts",
-        "project_state.json"
+        "backend/main.mo",
+        "frontend/src/hooks/useMemberAuth.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Version comparison utility with normalization logic including normalizeVersion, isVersionMatch, and getVersionStatus functions",
-      "reason": "The build request only asks to promote draft Version 49 to production. Adding version matching and comparison utilities with UI status reporting was not requested.",
+      "description": "Cross-tab localStorage synchronization for member auth state",
+      "reason": "The build request only requires persisting login state to localStorage and surviving a page refresh. Cross-tab sync via the storage event listener was not requested.",
       "evidence": [
-        "frontend/src/release/expectedProductionVersion.ts"
+        "frontend/src/hooks/useMemberAuth.ts"
       ]
     },
     {
-      "description": "Detailed smoke test checklist with category progress tracking for health, admin, and member flows",
-      "reason": "The build request does not request a smoke test checklist feature or category progress utilities. This is additional tooling beyond the scope of promoting a draft to production.",
+      "description": "memberAuthLogger diagnostic telemetry calls throughout useMemberAuth",
+      "reason": "The build request does not mention any logging or telemetry requirement for the member auth hook. The memberAuthLogger with methods like loginAttempt, validationRequest, validationResponse, etc. was not requested.",
       "evidence": [
-        "frontend/src/release/smokeTestChecklist.ts"
+        "frontend/src/hooks/useMemberAuth.ts"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/release/expectedProductionVersion.ts",
-    "frontend/src/release/smokeTestChecklist.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/hooks/useMemberAuth.ts",
+    "frontend/src/pages/MemberLoginPage.tsx",
     "project_state.json"
   ]
 }

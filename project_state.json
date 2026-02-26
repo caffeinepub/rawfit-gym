@@ -1,22 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Project with a login feature that is currently broken/failing.",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Member login is failing — reported by user after Version 50 deployment"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-promote-the-current-draft-version-version-49-to-production-making-it-the-live-version-of-the-application",
-      "title": "Promote the current draft version (Version 49) to production, making it the live version of the application.",
+      "id": "feature-fix-the-member-login-flow-so-that-submitting-a-valid-membership-id-on-the-memberloginpage-successfully-authenticates-the-member-persists-the-login-state-to-localstorage-via-usememberauth-and-navigates-to-the-memberdashboard-without-error",
+      "title": "Fix the member login flow so that submitting a valid membership ID on the MemberLoginPage successfully authenticates the member, persists the login state to localStorage via useMemberAuth, and navigates to the MemberDashboard without error.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-the-backend-getmemberbymembershipid-or-equivalent-query-validation-logic-to-ensure-it-correctly-returns-member-data-when-queried-with-a-valid-membership-id-and-that-the-frontend-usememberauth-hook-properly-handles-the-backend-response-including-any-optional-null-result-variants",
+      "title": "Audit and fix the backend getMemberByMembershipId (or equivalent) query/validation logic to ensure it correctly returns member data when queried with a valid membership ID, and that the frontend useMemberAuth hook properly handles the backend response (including any optional/null result variants).",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [],
-  "projectName": "RawFit Gym",
+  "projectName": "Fix member login failure",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

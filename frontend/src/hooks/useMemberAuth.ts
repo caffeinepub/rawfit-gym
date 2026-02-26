@@ -1,152 +1,150 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActor } from './useActor';
+import { MembershipStatus } from '../backend';
+import { memberAuthLogger } from '../lib/memberAuthLogger';
 
-const MEMBER_AUTH_KEY = 'memberAuth_memberId';
-const MEMBER_AUTH_NAME_KEY = 'memberAuth_name';
-const MEMBER_AUTH_EVENT = 'memberAuthChange';
+const MEMBER_AUTH_KEY = 'memberAuth';
 
 export interface MemberAuthState {
+  isAuthenticated: boolean;
   memberId: string | null;
   memberName: string | null;
-  isLoading: boolean;
-  error: string | null;
 }
 
-export interface MemberAuthActions {
-  login: (membershipId: string) => Promise<boolean>;
-  logout: () => void;
+interface StoredMemberAuth {
+  isAuthenticated: boolean;
+  memberId: string;
+  memberName: string;
 }
 
-export function useMemberAuth(): MemberAuthState & MemberAuthActions {
-  const { actor } = useActor();
-
-  const [state, setState] = useState<MemberAuthState>(() => {
-    try {
-      const storedId = localStorage.getItem(MEMBER_AUTH_KEY);
-      const storedName = localStorage.getItem(MEMBER_AUTH_NAME_KEY);
+function readFromStorage(): MemberAuthState {
+  try {
+    const raw = localStorage.getItem(MEMBER_AUTH_KEY);
+    if (!raw) return { isAuthenticated: false, memberId: null, memberName: null };
+    const parsed: StoredMemberAuth = JSON.parse(raw);
+    if (parsed.isAuthenticated && parsed.memberId) {
       return {
-        memberId: storedId || null,
-        memberName: storedName || null,
-        isLoading: false,
-        error: null,
+        isAuthenticated: true,
+        memberId: parsed.memberId,
+        memberName: parsed.memberName || null,
       };
-    } catch {
-      return { memberId: null, memberName: null, isLoading: false, error: null };
     }
-  });
+  } catch {
+    // ignore
+  }
+  return { isAuthenticated: false, memberId: null, memberName: null };
+}
 
-  // Sync across tabs via storage event
+function writeToStorage(state: StoredMemberAuth) {
+  try {
+    localStorage.setItem(MEMBER_AUTH_KEY, JSON.stringify(state));
+    memberAuthLogger.localStorageOperation('set', state.memberId);
+  } catch {
+    // ignore
+  }
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(MEMBER_AUTH_KEY);
+    memberAuthLogger.localStorageOperation('remove');
+  } catch {
+    // ignore
+  }
+}
+
+export function useMemberAuth() {
+  const { actor, isFetching: actorFetching } = useActor();
+  const [authState, setAuthState] = useState<MemberAuthState>(readFromStorage);
+
+  // Sync across tabs
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === MEMBER_AUTH_KEY) {
-        const newId = e.newValue || null;
-        const newName = localStorage.getItem(MEMBER_AUTH_NAME_KEY) || null;
-        setState(prev => ({ ...prev, memberId: newId, memberName: newName }));
+        memberAuthLogger.crossTabSync(e.newValue);
+        setAuthState(readFromStorage());
       }
     };
-
-    // Sync within same tab via custom event
-    const handleCustomEvent = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { memberId: string | null; memberName: string | null };
-      setState(prev => ({ ...prev, memberId: detail.memberId, memberName: detail.memberName }));
-    };
-
     window.addEventListener('storage', handleStorage);
-    window.addEventListener(MEMBER_AUTH_EVENT, handleCustomEvent);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener(MEMBER_AUTH_EVENT, handleCustomEvent);
-    };
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const login = useCallback(async (membershipId: string): Promise<boolean> => {
-    if (!actor) {
-      setState(prev => ({ ...prev, error: 'Connection not ready. Please try again.' }));
-      return false;
-    }
-
-    const trimmedId = membershipId.trim();
-    if (!trimmedId) {
-      setState(prev => ({ ...prev, error: 'Please enter your membership ID.' }));
-      return false;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      const result = await actor.memberLogin(trimmedId);
-
-      if (!result.isValid) {
-        let errorMsg = 'Membership not found or inactive.';
-        if (result.name === '' && result.status) {
-          // Member not found
-          errorMsg = 'No membership found with this ID. Please check and try again.';
-        } else if (result.status === 'inactive') {
-          errorMsg = 'Your membership is inactive. Please contact the gym.';
-        }
-        setState(prev => ({ ...prev, isLoading: false, error: errorMsg }));
-        return false;
+  const login = useCallback(
+    async (membershipId: string): Promise<{ success: boolean; error?: string }> => {
+      const trimmedId = membershipId.trim();
+      if (!trimmedId) {
+        return { success: false, error: 'Please enter your Membership ID.' };
       }
 
-      // Successful login — persist to localStorage
+      memberAuthLogger.loginAttempt(trimmedId);
+
+      if (!actor) {
+        memberAuthLogger.validationError(trimmedId, new Error('Actor not available'));
+        return { success: false, error: 'Service not ready. Please try again.' };
+      }
+
       try {
-        localStorage.setItem(MEMBER_AUTH_KEY, trimmedId);
-        localStorage.setItem(MEMBER_AUTH_NAME_KEY, result.name || '');
-      } catch {
-        // localStorage might be unavailable
+        memberAuthLogger.validationRequest(trimmedId);
+        const result = await actor.memberLogin(trimmedId);
+        memberAuthLogger.validationResponse(trimmedId, result);
+
+        if (!result.isValid) {
+          if (result.status === MembershipStatus.inactive) {
+            return { success: false, error: 'Membership ID not found or membership is inactive.' };
+          }
+          return { success: false, error: 'Membership ID not found or invalid.' };
+        }
+
+        // Allow both active and paused members to log in
+        if (
+          result.status === MembershipStatus.active ||
+          result.status === MembershipStatus.paused
+        ) {
+          const newState: StoredMemberAuth = {
+            isAuthenticated: true,
+            memberId: trimmedId,
+            memberName: result.name || trimmedId,
+          };
+          writeToStorage(newState);
+          setAuthState({
+            isAuthenticated: true,
+            memberId: trimmedId,
+            memberName: result.name || trimmedId,
+          });
+          memberAuthLogger.loginSuccess(trimmedId, result.status);
+          return { success: true };
+        }
+
+        return { success: false, error: 'Membership is not active.' };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        memberAuthLogger.validationError(trimmedId, err);
+
+        if (message.includes('Member not found') || message.includes('not found')) {
+          return { success: false, error: 'Membership ID not found.' };
+        }
+        if (message.includes('Unauthorized')) {
+          return { success: false, error: 'Access denied. Please try again.' };
+        }
+        return {
+          success: false,
+          error: 'Login failed. Please check your Membership ID and try again.',
+        };
       }
-
-      // Update state directly (don't rely only on event)
-      setState({
-        memberId: trimmedId,
-        memberName: result.name || '',
-        isLoading: false,
-        error: null,
-      });
-
-      // Also dispatch event for other tabs/instances
-      window.dispatchEvent(
-        new CustomEvent(MEMBER_AUTH_EVENT, {
-          detail: { memberId: trimmedId, memberName: result.name || '' },
-        })
-      );
-
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      let userMessage = 'Login failed. Please try again.';
-
-      if (message.includes('not found') || message.includes('Not found')) {
-        userMessage = 'No membership found with this ID.';
-      } else if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
-        userMessage = 'Network error. Please check your connection and try again.';
-      } else if (message.includes('Unauthorized') || message.includes('unauthorized')) {
-        userMessage = 'Access denied. Please contact the gym.';
-      }
-
-      setState(prev => ({ ...prev, isLoading: false, error: userMessage }));
-      return false;
-    }
-  }, [actor]);
+    },
+    [actor]
+  );
 
   const logout = useCallback(() => {
-    try {
-      localStorage.removeItem(MEMBER_AUTH_KEY);
-      localStorage.removeItem(MEMBER_AUTH_NAME_KEY);
-    } catch {
-      // ignore
-    }
-
-    // Update state directly
-    setState({ memberId: null, memberName: null, isLoading: false, error: null });
-
-    // Dispatch event for other tabs
-    window.dispatchEvent(
-      new CustomEvent(MEMBER_AUTH_EVENT, {
-        detail: { memberId: null, memberName: null },
-      })
-    );
+    clearStorage();
+    setAuthState({ isAuthenticated: false, memberId: null, memberName: null });
   }, []);
 
-  return { ...state, login, logout };
+  return {
+    ...authState,
+    login,
+    logout,
+    isActorReady: !!actor && !actorFetching,
+    authError: null as string | null,
+  };
 }
